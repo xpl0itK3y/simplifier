@@ -6,7 +6,18 @@ load_dotenv()
 
 CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
-def verify_google_token(token: str):
+ALLOWED_EXTENSION_IDS = [
+    "jdidlnlcanjlbabpcgkcdkpfigfemhjd"
+]
+
+def verify_google_token(token: str, extension_id: str = None):
+    # Security: Verify Extension ID if provided
+    if extension_id:
+        extension_id = extension_id.strip()
+        if extension_id not in ALLOWED_EXTENSION_IDS:
+            print(f"DEBUG: Unauthorized extension attempted: {extension_id}")
+            return None
+
     try:
         # Verify Access Token via Google Endpoint
         response = requests.get(

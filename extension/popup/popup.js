@@ -8,6 +8,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+
+    // Navigation
+    settingsBtn.onclick = () => {
+        if (settingsBtn.classList.contains('disabled')) return;
+        chrome.tabs.create({ url: chrome.runtime.getURL('settings/settings.html') });
+    };
 
     // 1. Check Backend Health
     try {
@@ -77,10 +84,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Logged Out
                 loggedOutView.classList.remove('hidden');
                 loggedInView.classList.add('hidden');
+                settingsBtn.classList.add('disabled');
+                settingsBtn.title = "Доступно только после входа";
             } else {
                 // Logged In
                 loggedOutView.classList.add('hidden');
                 loggedInView.classList.remove('hidden');
+                settingsBtn.classList.remove('disabled');
+                settingsBtn.title = "";
 
                 // Optional: Get Profile Info (requires UserInfo scope)
                 fetch('https://www.googleapis.com/oauth2/v2/userinfo', {

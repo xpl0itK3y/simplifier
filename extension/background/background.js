@@ -103,7 +103,8 @@ async function handleStreamingSimplification({ text, mode }, tabId, retryCount =
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'X-Extension-Id': chrome.runtime.id
             },
             body: JSON.stringify({
                 text: text,

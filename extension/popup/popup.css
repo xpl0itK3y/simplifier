@@ -9,6 +9,32 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  padding-bottom: 20px;
+}
+
+.footer-actions {
+  width: 100%;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.btn-secondary {
+  background-color: #f8f9fa;
+  color: #555;
+  border: 1px solid #ddd !important;
+}
+
+.btn-secondary:hover {
+  background-color: #e2e6ea;
+  border-color: #ccc !important;
+}
+
+.btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(1);
 }
 
 h2 {

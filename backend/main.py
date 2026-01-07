@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -12,6 +12,14 @@ from typing import Optional
 from database import init_db, get_user_credits, decrement_credits
 from auth import verify_google_token
 
+# Rate Limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+# Initialize Limiter
+limiter = Limiter(key_func=get_remote_address)
+
 # Load environment variables
 load_dotenv()
 
@@ -20,14 +28,16 @@ init_db()
 
 # Initialize FastAPI
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["chrome-extension://jdidlnlcanjlbabpcgkcdkpfigfemhjd"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization", "X-Extension-ID"],
 )
 
 # Initialize OpenAI
@@ -75,12 +85,18 @@ async def stream_generator(text: str, mode: str):
         yield f"Error: {str(e)}"
 
 @app.post("/simplify")
-async def simplify_text(request: SimplifyRequest, authorization: Optional[str] = Header(None)):
+@limiter.limit("5/minute")
+async def simplify_text(
+    request: Request,
+    simplify_request: SimplifyRequest, 
+    authorization: Optional[str] = Header(None),
+    x_extension_id: Optional[str] = Header(None)
+):
     if not api_key:
         raise HTTPException(status_code=500, detail="Server misconfiguration: API Key missing")
     
     # 1. Check Text Length (Security)
-    if len(request.text) > 10000:
+    if len(simplify_request.text) > 10000:
         raise HTTPException(status_code=400, detail="Text is too long (Max 10,000 chars).")
 
     # 2. Authenticate User (Security)
@@ -91,7 +107,7 @@ async def simplify_text(request: SimplifyRequest, authorization: Optional[str] =
         raise HTTPException(status_code=401, detail="Invalid Authorization format")
 
     token = authorization.split(" ")[1]
-    google_id = verify_google_token(token)
+    google_id = verify_google_token(token, x_extension_id)
 
     if not google_id:
         raise HTTPException(status_code=401, detail="Invalid Google Token")
@@ -106,7 +122,7 @@ async def simplify_text(request: SimplifyRequest, authorization: Optional[str] =
     if not decrement_success:
         raise HTTPException(status_code=429, detail="Request too frequent. Please wait.")
     
-    return StreamingResponse(stream_generator(request.text, request.mode), media_type="text/plain")
+    return StreamingResponse(stream_generator(simplify_request.text, simplify_request.mode), media_type="text/plain")
 
 @app.get("/health")
 async def health_check():
