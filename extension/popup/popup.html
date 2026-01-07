@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Text Simplifier</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+
+  <h2>Text Simplifier</h2>
+
+  <!-- Server Status -->
+  <div class="status-area">
+    <span id="server-dot" class="status-dot"></span>
+    <span id="server-status">Checking server...</span>
+  </div>
+
+  <!-- Auth UI -->
+  <div id="auth-section" class="auth-container">
+
+    <!-- State: Logged Out -->
+    <div id="logged-out-view">
+      <button id="login-btn" class="btn btn-login">Войти через Google</button>
+    </div>
+
+    <!-- State: Logged In -->
+    <div id="logged-in-view" class="hidden">
+      <div class="user-info">
+        Вы вошли как <span id="user-email" style="color: #333; font-weight: bold;">...</span>
+      </div>
+      <button id="logout-btn" class="btn btn-logout">Выйти</button>
+    </div>
+
+  </div>
+
+  <p class="hint">Выделите текст на странице, чтобы упростить его.</p>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
