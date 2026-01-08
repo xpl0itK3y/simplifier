@@ -57,7 +57,8 @@
                 "content/components/login.html",
                 "content/components/login.css",
                 "content/components/credits.html",
-                "content/components/loading.html"
+                "content/components/loading.html",
+                "content/components/instruction.html"
             ],
             "matches": [
                 "<all_urls>"

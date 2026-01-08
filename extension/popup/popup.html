@@ -1,47 +1,61 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 
 <head>
-  <meta charset="UTF-8">
-  <title>Text Simplifier</title>
-  <link rel="stylesheet" href="popup.css">
+    <meta charset="UTF-8" />
+    <title>Text Simplifier</title>
+    <link rel="stylesheet" href="popup.css" />
 </head>
 
 <body>
-
-  <h2>Text Simplifier</h2>
-
-  <!-- Server Status -->
-  <div class="status-area">
-    <span id="server-dot" class="status-dot"></span>
-    <span id="server-status">Checking server...</span>
-  </div>
-
-  <!-- Auth UI -->
-  <div id="auth-section" class="auth-container">
+    <div class="popup-header">
+        <h1>Text Simplifier</h1>
+        <div class="status-badge">
+            <span id="server-dot" class="dot"></span>
+            <span id="server-status">Проверка...</span>
+        </div>
+    </div>
 
     <!-- State: Logged Out -->
-    <div id="logged-out-view">
-      <button id="login-btn" class="btn btn-login">Войти через Google</button>
+    <div id="logged-out-view" class="auth-view">
+        <div class="welcome-section">
+            <p class="welcome-text">Войдите, чтобы начать упрощать текст</p>
+        </div>
+        <button id="login-btn" class="btn btn-login">
+            Войти через Google
+        </button>
     </div>
 
     <!-- State: Logged In -->
-    <div id="logged-in-view" class="hidden">
-      <div class="user-info">
-        Вы вошли как <span id="user-email" style="color: #333; font-weight: bold;">...</span>
-      </div>
-      <button id="logout-btn" class="btn btn-logout">Выйти</button>
+    <div id="logged-in-view" class="auth-view hidden">
+        <div class="profile-section">
+            <img id="user-avatar" class="avatar" src="" alt="Avatar" />
+            <div class="profile-info">
+                <div id="user-name" class="user-name">Загрузка...</div>
+                <div id="user-email" class="user-email">...</div>
+            </div>
+        </div>
+
+        <div class="subscription-section">
+            <p class="subscription-text">
+                <span id="plan-name">Бесплатный</span> ·
+                <span id="requests-remaining">15</span> запросов
+            </p>
+        </div>
+
+        <div class="hint-section">
+            <p class="hint-text">Выделите текст на странице</p>
+        </div>
+
+        <div class="actions">
+            <button id="settings-btn" class="btn btn-settings">
+                Настройки
+            </button>
+            <button id="logout-btn" class="btn btn-logout">Выйти</button>
+        </div>
     </div>
 
-  </div>
-
-  <p class="hint">Выделите текст на странице, чтобы упростить его.</p>
-
-  <div class="footer-actions">
-    <button id="settings-btn" class="btn btn-secondary">Настройки</button>
-  </div>
-
-  <script src="popup.js"></script>
+    <script src="popup.js"></script>
 </body>
 
 </html>

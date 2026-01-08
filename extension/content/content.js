@@ -42,9 +42,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === 'STREAM_CHUNK') {
       const loadingEl = resultContent.querySelector('.loading');
+      const instructionEl = resultContent.querySelector('.instruction-text');
 
-      // If this is the FIRST chunk (spinner still exists), replace it.
-      if (loadingEl) {
+      // Если это ПЕРВЫЙ чанк (есть спиннер ИЛИ текст инструкции), заменяем всё на чистый контейнер
+      if (loadingEl || instructionEl || !resultContent.querySelector('.result-text')) {
         resultContent.innerHTML = '<div class="result-text"></div>';
       }
 
@@ -122,10 +123,10 @@ async function showModal() {
       if (!response || !response.isAuthenticated) {
         // User is NOT logged in
         showLoginPrompt(modal);
-
-        // Запускаем периодическую проверку авторизации
-        startAuthCheck(modal);
       }
+
+      // Запускаем периодическую проверку авторизации (для входа И выхода)
+      startAuthCheck(modal);
     });
 
     // Event Listeners
@@ -144,12 +145,12 @@ async function showModal() {
 
     const buttons = modal.querySelectorAll('.action-btn');
     buttons.forEach(btn => {
-      btn.onclick = () => {
+      btn.onclick = async () => {
         // UI Update
         buttons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
 
-        startSimplification(currentSelectionText, btn.dataset.mode, modal);
+        await startSimplification(currentSelectionText, btn.dataset.mode, modal);
       };
     });
 
@@ -161,36 +162,40 @@ async function showModal() {
   }
 }
 
-// Периодическая проверка авторизации
+// Периодическая проверка авторизации (вход И выход)
+let wasAuthenticated = null; // Отслеживаем предыдущее состояние
+
 function startAuthCheck(modal) {
   authCheckInterval = setInterval(() => {
     chrome.runtime.sendMessage({ action: 'CHECK_AUTH' }, (response) => {
-      if (response && response.isAuthenticated) {
-        // Пользователь авторизовался!
-        clearInterval(authCheckInterval);
-        authCheckInterval = null;
+      const isAuthenticated = response && response.isAuthenticated;
 
-        // Убираем блокировку кнопок
+      // Если состояние изменилось
+      if (wasAuthenticated !== isAuthenticated) {
+        wasAuthenticated = isAuthenticated;
+
         const buttons = modal.querySelectorAll('.actions .action-btn');
-        buttons.forEach(b => {
-          b.style.opacity = '1';
-          b.style.pointerEvents = 'auto';
-          b.style.cursor = 'pointer';
-        });
-
-        // Меняем контент на инструкцию
         const resultDiv = modal.querySelector('#result-content');
-        if (resultDiv) {
-          resultDiv.innerHTML = `<div class="result-text" style="color: #888;">
-            <strong>Выделенный текст:</strong><br>
-            "<span id="selection-preview"></span>"
-            <br><br>
-             Авторизация успешна! Выберите режим упрощения выше.
-          </div>`;
-          const previewEl = resultDiv.querySelector('#selection-preview');
-          if (previewEl) {
-            previewEl.textContent = `${currentSelectionText.substring(0, 100)}${currentSelectionText.length > 100 ? '...' : ''}`;
+
+        if (isAuthenticated) {
+          // Пользователь ВОШЕЛ
+          buttons.forEach(b => {
+            b.style.opacity = '1';
+            b.style.pointerEvents = 'auto';
+            b.style.cursor = 'pointer';
+          });
+
+          if (resultDiv) {
+            fetchTemplate('content/components/instruction.html', resultDiv).then(() => {
+              const previewEl = resultDiv.querySelector('#selection-preview');
+              if (previewEl) {
+                previewEl.textContent = `${currentSelectionText.substring(0, 100)}${currentSelectionText.length > 100 ? '...' : ''}`;
+              }
+            });
           }
+        } else {
+          // Пользователь ВЫШЕЛ
+          showLoginPrompt(modal);
         }
       }
     });
@@ -253,10 +258,10 @@ function makeDraggable(element, handle) {
   });
 }
 
-function startSimplification(text, mode, modalContainer) {
+async function startSimplification(text, mode, modalContainer) {
   const resultDiv = modalContainer.querySelector('#result-content');
-  // Show loading with spinner
-  fetchTemplate('content/components/loading.html', resultDiv);
+  // Show loading with spinner and WAIT for it
+  await fetchTemplate('content/components/loading.html', resultDiv);
 
   chrome.runtime.sendMessage({
     action: 'SIMPLIFY_TEXT',

@@ -54,8 +54,11 @@ def verify_google_token(token: str, extension_id: str = None):
             print(f"DEBUG: Invalid expires_in format: {expires_in}")
             # Continue anyway, other checks are more important
 
-        # Return the unique user ID ('sub')
-        return info['sub']
+        # Return the unique user ID ('sub') and email
+        return {
+            'id': info['sub'],
+            'email': info.get('email')
+        }
 
     except requests.exceptions.Timeout:
         print("DEBUG: Token verification timeout")

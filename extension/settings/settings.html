@@ -1,14 +1,267 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Настройки - Text Simplifier</title>
-    <link rel="stylesheet" href="settings.css">
+    <link rel="stylesheet" href="settings.css" />
 </head>
 
 <body>
-    <div class="settings-container"></div>
+    <div class="settings-wrapper">
+        <!-- LEFT SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>Text Simplifier</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-tab="account">
+                    <span>Аккаунт</span>
+                </button>
+                <button class="nav-item" data-tab="ai-settings">
+                    <span>Настройка AI</span>
+                </button>
+                <button class="nav-item" data-tab="subscriptions">
+                    <span>Подписки</span>
+                </button>
+                <button class="nav-item nav-logout" data-tab="logout">
+                    <span>Выход</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- RIGHT CONTENT AREA -->
+        <div class="content-area">
+            <!-- TAB 1: АККАУНТ -->
+            <div class="content-tab active" id="tab-account">
+                <div class="tab-header">
+                    <h1>Аккаунт</h1>
+                    <p>Управление профилем и информацией</p>
+                </div>
+
+                <div class="section">
+                    <h2>Информация</h2>
+
+                    <div class="info-row">
+                        <div class="info-label">
+                            <strong>Email</strong>
+                            <p id="user-email" class="info-text">
+                                Загрузка...
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">
+                            <strong>Статус подписки</strong>
+                            <p class="info-text">
+                                <span id="subscription-status" class="badge badge-free">Бесплатно</span>
+                            </p>
+                        </div>
+                        <button id="cancel-subscription-btn" class="btn-danger hidden">
+                            Отменить подписку
+                        </button>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">
+                            <strong>Использовано запросов</strong>
+                            <p class="info-text">
+                                <span id="requests-used">0</span> из
+                                <span id="requests-limit">15</span> в этом
+                                месяце
+                            </p>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">
+                            <strong>Дополнительно</strong>
+                            <p class="info-text">
+                                История платежей, чеки и обратная связь
+                            </p>
+                        </div>
+                        <button id="feedback-btn" class="btn-secondary">
+                            Обратная связь
+                        </button>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-label">
+                            <strong>Поддержка автора</strong>
+                            <p class="info-text">
+                                Если вам нравится расширение, поддержите
+                                разработку
+                            </p>
+                        </div>
+                        <button id="donate-btn" class="btn-secondary">
+                            ☕ Угостить кофе
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: НАСТРОЙКА AI -->
+            <div class="content-tab" id="tab-ai-settings">
+                <div class="tab-header">
+                    <h1>Настройка AI</h1>
+                    <p>
+                        Настройте параметры обработки текста для каждого
+                        режима
+                    </p>
+                </div>
+
+                <div class="section">
+                    <h2>Режимы обработки</h2>
+
+                    <!-- Mode 1: Просто -->
+                    <div class="mode-card">
+                        <div class="mode-header">
+                            <h3>Просто</h3>
+                            <span class="mode-badge">Базовая настройка</span>
+                        </div>
+                        <div class="slider-group">
+                            <label>Степень упрощения</label>
+                            <input type="range" id="simple-level" min="1" max="10" value="5" class="slider" />
+                            <div class="slider-labels">
+                                <span>Немного проще</span>
+                                <span>Максимально просто</span>
+                            </div>
+                        </div>
+                        <div class="premium-lock hidden" data-mode="simple">
+                            <span class="lock-icon">🔒</span>
+                            <p>Доступно с подпиской <strong>GO</strong></p>
+                        </div>
+                    </div>
+
+                    <!-- Mode 2: Кратко -->
+                    <div class="mode-card">
+                        <div class="mode-header">
+                            <h3>Кратко</h3>
+                            <span class="mode-badge">Базовая настройка</span>
+                        </div>
+                        <div class="slider-group">
+                            <label>Степень сжатия</label>
+                            <input type="range" id="short-level" min="1" max="10" value="5" class="slider" />
+                            <div class="slider-labels">
+                                <span>Умеренное сжатие</span>
+                                <span>Максимально кратко</span>
+                            </div>
+                        </div>
+                        <div class="premium-lock hidden" data-mode="short">
+                            <span class="lock-icon">🔒</span>
+                            <p>Доступно с подпиской <strong>GO</strong></p>
+                        </div>
+                    </div>
+
+                    <!-- Mode 3: Тезисно -->
+                    <div class="mode-card">
+                        <div class="mode-header">
+                            <h3>Тезисно</h3>
+                            <span class="mode-badge">Базовая настройка</span>
+                        </div>
+                        <div class="slider-group">
+                            <label>Количество тезисов</label>
+                            <input type="range" id="points-count" min="3" max="15" value="5" class="slider" />
+                            <div class="slider-labels">
+                                <span>3 тезиса</span>
+                                <span>15 тезисов</span>
+                            </div>
+                        </div>
+                        <div class="premium-lock hidden" data-mode="key_points">
+                            <span class="lock-icon">🔒</span>
+                            <p>Доступно с подпиской <strong>GO</strong></p>
+                        </div>
+                    </div>
+
+                    <!-- Mode 4: С примером -->
+                    <div class="mode-card">
+                        <div class="mode-header">
+                            <h3>С примером</h3>
+                            <span class="mode-badge">Базовая настройка</span>
+                        </div>
+                        <div class="slider-group">
+                            <label>Количество примеров</label>
+                            <input type="range" id="examples-count" min="1" max="5" value="2" class="slider" />
+                            <div class="slider-labels">
+                                <span>1 пример</span>
+                                <span>5 примеров</span>
+                            </div>
+                        </div>
+                        <div class="premium-lock hidden" data-mode="examples">
+                            <span class="lock-icon">🔒</span>
+                            <p>Доступно с подпиской <strong>GO</strong></p>
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        <button id="apply-ai-settings" class="btn-primary">
+                            ✓ Применить настройки
+                        </button>
+                        <span id="ai-status-msg" class="status-msg"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: ПОДПИСКИ -->
+            <div class="content-tab" id="tab-subscriptions">
+                <div class="tab-header">
+                    <h1>Подписки</h1>
+                    <p>Выберите подходящий тарифный план</p>
+                </div>
+
+                <div class="section">
+                    <h2>Тарифные планы</h2>
+
+                    <div class="plans-grid">
+                        <!-- Plan 1: Free -->
+                        <div class="plan-card plan-free" id="plan-free">
+                            <div class="plan-top">
+                                <h3>Бесплатно</h3>
+                                <div class="plan-price">
+                                    $0<span>/мес</span>
+                                </div>
+                            </div>
+                            <ul class="plan-list">
+                                <li>✓ До 5,000 входных символов</li>
+                                <li>✓ 15 запросов в месяц</li>
+                                <li>✓ Базовые режимы AI</li>
+                                <li>✗ Настройки AI недоступны</li>
+                            </ul>
+                            <button class="btn-plan current">
+                                Текущий план
+                            </button>
+                        </div>
+
+                        <!-- Plan 2: Premium -->
+                        <div class="plan-card plan-premium" id="plan-go">
+                            <div class="plan-popular">Популярный</div>
+                            <div class="plan-top">
+                                <h3>GO</h3>
+                                <div class="plan-price">
+                                    $1.50<span>/мес</span>
+                                </div>
+                            </div>
+                            <ul class="plan-list">
+                                <li>✓ До 10,000 входных символов</li>
+                                <li>✓ 25 запросов в месяц</li>
+                                <li>✓ Все режимы AI</li>
+                                <li>✓ Настройки AI</li>
+                                <li>✓ Приоритетная поддержка</li>
+                            </ul>
+                            <button id="upgrade-btn" class="btn-plan upgrade">
+                                Подключить GO
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="settings.js"></script>
 </body>
 
