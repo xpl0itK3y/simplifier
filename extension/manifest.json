@@ -7,7 +7,8 @@
         "activeTab",
         "contextMenus",
         "scripting",
-        "identity"
+        "identity",
+        "storage"
     ],
     "oauth2": {
         "client_id": "752454911072-7bepghb2c3bva44au0rbe9shluv9lndc.apps.googleusercontent.com",
@@ -27,6 +28,7 @@
             "128": "icons/icon128.png"
         }
     },
+    "options_page": "settings/settings.html",
     "background": {
         "service_worker": "background/background.js"
     },

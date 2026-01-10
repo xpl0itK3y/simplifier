@@ -37,6 +37,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ status: 'started' });
         return true;
     }
+
+    if (request.action === 'OPEN_SETTINGS') {
+        const url = chrome.runtime.getURL('settings/settings.html#tab-subscriptions');
+        chrome.tabs.create({ url: url });
+        return true;
+    }
 });
 
 // Helper to get Google Token with retry

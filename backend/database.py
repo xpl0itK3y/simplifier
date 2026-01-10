@@ -6,6 +6,9 @@ import time
 
 DB_NAME = "users.db"
 
+# Caching for performance
+PLAN_CACHE = {}
+
 # Subscription plan configurations
 SUBSCRIPTION_PLANS = {
     'free': {
@@ -23,15 +26,50 @@ SUBSCRIPTION_PLANS = {
         'max_requests': 25,
         'ai_settings_enabled': True,
         'price': 1.5
+    },
+    'go_plus': {
+        'id': 'go_plus',
+        'name': 'GO +',
+        'max_chars': 20000,
+        'max_requests': 50,
+        'ai_settings_enabled': True,
+        'price': 3.0
+    },
+    'go_pro': {
+        'id': 'go_pro',
+        'name': 'GO Pro',
+        'max_chars': 40000,
+        'max_requests': 100,
+        'ai_settings_enabled': True,
+        'price': 5.0
+    },
+    'go_pro_plus': {
+        'id': 'go_pro_plus',
+        'name': 'GO Pro +',
+        'max_chars': 50000,
+        'max_requests': 300,
+        'ai_settings_enabled': True,
+        'price': 50.0  # За год
+    },
+    'go_pro_ultra': {
+        'id': 'go_pro_ultra',
+        'name': 'GO Pro Ultra Max',
+        'max_chars': 100000,
+        'max_requests': 500,
+        'ai_settings_enabled': True,
+        'price': 80.0  # Навсегда
     }
 }
 
 @contextmanager
 def get_db():
-    """Context manager for database connections"""
+    """Context manager for database connections with performance tweaks"""
     conn = sqlite3.connect(DB_NAME, timeout=10.0)
     conn.row_factory = sqlite3.Row  # Enable dict-like access
+    # Performance tweaks
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA temp_store=MEMORY")
     try:
         yield conn
         conn.commit()
@@ -42,6 +80,7 @@ def get_db():
         conn.close()
 
 def init_db():
+    global PLAN_CACHE
     with get_db() as conn:
         c = conn.cursor()
         
@@ -114,21 +153,24 @@ def init_db():
                 print(f"Migrating: adding {col} column...")
                 c.execute(f'ALTER TABLE users ADD COLUMN {col} {definition}')
 
-def get_all_plans():
-    """Get all available subscription plans"""
+    # Pre-warm plan cache
+    all_plans = []
     with get_db() as conn:
         c = conn.cursor()
         c.execute('SELECT * FROM subscription_plans ORDER BY price ASC')
-        rows = c.fetchall()
-        return [dict(row) for row in rows]
+        all_plans = [dict(row) for row in c.fetchall()]
+    
+    PLAN_CACHE = {p['id']: p for p in all_plans}
+
+def get_all_plans():
+    """Get all available subscription plans (uses cache if available)"""
+    if PLAN_CACHE:
+        return sorted(PLAN_CACHE.values(), key=lambda x: x['price'])
+    return []
 
 def get_plan(plan_id: str):
-    """Get a specific plan by ID"""
-    with get_db() as conn:
-        c = conn.cursor()
-        c.execute('SELECT * FROM subscription_plans WHERE id = ?', (plan_id,))
-        row = c.fetchone()
-        return dict(row) if row else None
+    """Get a specific plan by ID from cache"""
+    return PLAN_CACHE.get(plan_id)
 
 def get_user_subscription(google_id: str, email: str = None) -> dict:
     """Get user's subscription info and settings. Syncs email and creates user if missing."""
@@ -249,7 +291,11 @@ def upgrade_user(google_id: str, plan_id: str) -> bool:
         current_date = datetime.now().date()
         
         expires = None
-        if plan['price'] > 0:
+        if plan_id == 'go_pro_plus':
+            expires = (datetime.now() + timedelta(days=365)).date()
+        elif plan_id == 'go_pro_ultra':
+            expires = (datetime.now() + timedelta(days=36500)).date() # 100 years = forever
+        elif plan['price'] > 0:
             expires = (datetime.now() + timedelta(days=30)).date()
         
         c.execute('SELECT google_id FROM users WHERE google_id = ?', (google_id,))
@@ -261,7 +307,7 @@ def upgrade_user(google_id: str, plan_id: str) -> bool:
         else:
             c.execute('''
                 UPDATE users 
-                SET subscription_id = ?, subscription_expires = ?
+                SET subscription_id = ?, subscription_expires = ?, requests_used = 0
                 WHERE google_id = ?
             ''', (plan_id, expires, google_id))
         

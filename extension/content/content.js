@@ -60,7 +60,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === 'STREAM_ERROR') {
       if (request.error === 'LOGIN_REQUIRED') {
-        fetchTemplate('content/templates/login.html', resultContent).then(() => {
+        fetchTemplate('content/components/login.html', resultContent).then(() => {
           const loginBtn = shadowRoot.querySelector('#login-inline-btn');
           if (loginBtn) {
             loginBtn.onclick = () => {
@@ -69,9 +69,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
         });
       } else if (request.error === 'CREDITS_EXHAUSTED') {
-        fetchTemplate('content/templates/credits.html', resultContent);
+        fetchTemplate('content/components/credits.html', resultContent).then(() => {
+          const upgradeBtn = shadowRoot.querySelector('#upgrade-limits-btn');
+          if (upgradeBtn) {
+            upgradeBtn.onclick = () => {
+              chrome.runtime.sendMessage({ action: "OPEN_SETTINGS" });
+            };
+          }
+        });
       } else {
-        resultContent.innerHTML = `<span class="error-msg">${request.error}</span>`;
+        const errorSpan = document.createElement('span');
+        errorSpan.className = 'error-msg';
+        errorSpan.textContent = request.error;
+        resultContent.innerHTML = '';
+        resultContent.appendChild(errorSpan);
       }
     }
   }
@@ -106,10 +117,8 @@ async function showModal() {
   modal.className = 'simplifier-modal';
 
   try {
-    // Fetch HTML template for Modal
-    const url = chrome.runtime.getURL('content/modal.html');
-    const response = await fetch(url);
-    const htmlText = await response.text();
+    // Fetch HTML template for Modal using cache
+    const htmlText = await fetchTemplate('content/modal.html');
     modal.innerHTML = htmlText;
 
     // Inject dynamic content (Selection Preview)
@@ -285,20 +294,36 @@ function showLoginPrompt(modal) {
   });
 }
 
+const templateCache = {};
+
 // Helper to fetch and inject template
 async function fetchTemplate(path, container) {
   try {
-    const url = chrome.runtime.getURL(path);
-    const response = await fetch(url);
-    let html = await response.text();
+    let html = '';
 
-    // Resolve relative paths for CSS and Images in the template
-    html = html.replace(/href="content\//g, `href="${chrome.runtime.getURL('content/')}`);
-    html = html.replace(/src="content\//g, `src="${chrome.runtime.getURL('content/')}`);
+    if (templateCache[path]) {
+      html = templateCache[path];
+    } else {
+      const url = chrome.runtime.getURL(path);
+      const response = await fetch(url);
+      html = await response.text();
 
-    container.innerHTML = html;
+      // Resolve relative paths for CSS and Images in the template
+      const baseURL = chrome.runtime.getURL('content/');
+      html = html.replace(/href="content\//g, `href="${baseURL}`);
+      html = html.replace(/src="content\//g, `src="${baseURL}`);
+
+      templateCache[path] = html;
+    }
+
+    if (container) {
+      container.innerHTML = html;
+    }
+    return html;
   } catch (e) {
     console.error('Failed to load template:', path, e);
-    container.innerHTML = `<span class="error-msg">Error loading UI</span>`;
+    if (container) {
+      container.innerHTML = `<span class="error-msg">Error loading UI</span>`;
+    }
   }
 }

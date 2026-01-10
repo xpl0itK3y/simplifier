@@ -101,15 +101,37 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (response.ok) {
         const sub = await response.json();
-        if (planNameEl) planNameEl.textContent = sub.plan_name;
-        if (requestsRemainingEl) {
-          const remaining = sub.max_requests - sub.requests_used;
-          requestsRemainingEl.textContent = remaining;
+        const subData = {
+          plan_name: sub.plan_name,
+          requests_remaining: sub.max_requests - sub.requests_used
+        };
+
+        // Cache for next time
+        if (chrome.storage && chrome.storage.local) {
+          chrome.storage.local.set({ lastSubscriptionData: subData });
         }
+
+        // Update UI
+        updateSubscriptionUI(subData);
       }
     } catch (e) {
       console.error("Failed to load subscription info:", e);
     }
+  }
+
+  function updateSubscriptionUI(data) {
+    if (!data) return;
+    const planNameEl = document.getElementById("plan-name");
+    const requestsRemainingEl = document.getElementById("requests-remaining");
+    if (planNameEl) planNameEl.textContent = data.plan_name;
+    if (requestsRemainingEl) requestsRemainingEl.textContent = data.requests_remaining;
+  }
+
+  function updateProfileUI(data) {
+    if (!data) return;
+    if (data.name) userNameEl.textContent = data.name;
+    if (data.email) userEmailEl.textContent = data.email;
+    if (data.picture) userAvatarEl.src = data.picture;
   }
 
   // Check authentication status
@@ -126,40 +148,50 @@ document.addEventListener("DOMContentLoaded", async () => {
         loggedInView.classList.remove("hidden");
         settingsBtn.classList.remove("disabled");
 
-        // Load subscription data
+        // 1. Try to load from cache FIRST for instant UI
+        if (chrome.storage && chrome.storage.local) {
+          chrome.storage.local.get(["lastSubscriptionData", "lastProfileData"], (result) => {
+            if (result.lastSubscriptionData) {
+              updateSubscriptionUI(result.lastSubscriptionData);
+            }
+            if (result.lastProfileData) {
+              updateProfileUI(result.lastProfileData);
+            }
+          });
+        } else {
+          console.warn("chrome.storage.local is undefined. Please reload the extension in chrome://extensions");
+        }
+
+        // 2. Load fresh subscription data
         loadSubscriptionData(token);
 
-        // Get Profile Info
+        // 3. Get fresh Profile Info
         fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then((res) => res.json())
           .then((data) => {
-            if (data.name) {
-              userNameEl.textContent = data.name;
-            } else {
-              userNameEl.textContent = "Пользователь";
+            const profileData = {
+              name: data.name || "Пользователь",
+              email: data.email || "",
+              picture: data.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || "?")}&background=667eea&color=fff&size=96`
+            };
+
+            // Cache for next time
+            if (chrome.storage && chrome.storage.local) {
+              chrome.storage.local.set({ lastProfileData: profileData });
             }
 
-            if (data.email) {
-              userEmailEl.textContent = data.email;
-            } else {
-              userEmailEl.textContent = "";
-            }
-
-            if (data.picture) {
-              userAvatarEl.src = data.picture;
-            } else {
-              // Fallback avatar with first letter
-              const firstLetter = data.name ? data.name[0].toUpperCase() : "?";
-              userAvatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLetter)}&background=667eea&color=fff&size=96`;
-            }
+            // Update UI
+            updateProfileUI(profileData);
           })
           .catch(() => {
-            userNameEl.textContent = "Пользователь";
-            userEmailEl.textContent = "";
-            userAvatarEl.src =
-              "https://ui-avatars.com/api/?name=?&background=667eea&color=fff&size=96";
+            // Only update if no cached data
+            if (userNameEl.textContent === "Загрузка...") {
+              userNameEl.textContent = "Пользователь";
+              userEmailEl.textContent = "";
+              userAvatarEl.src = "https://ui-avatars.com/api/?name=?&background=667eea&color=fff&size=96";
+            }
           });
       }
     });

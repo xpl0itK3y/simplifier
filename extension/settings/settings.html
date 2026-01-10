@@ -27,6 +27,7 @@
                 <button class="nav-item nav-logout" data-tab="logout">
                     <span>Выход</span>
                 </button>
+                <div class="nav-indicator"></div>
             </nav>
         </div>
 
@@ -228,15 +229,17 @@
                             <ul class="plan-list">
                                 <li>✓ До 5,000 входных символов</li>
                                 <li>✓ 15 запросов в месяц</li>
-                                <li>✓ Базовые режимы AI</li>
                                 <li>✗ Настройки AI недоступны</li>
+                                <li>✗ История сокращения</li>
+                                <li>✗ Свой API ключ </li>
+                                <li>✗ Приемиум режимы AI</li>
                             </ul>
-                            <button class="btn-plan current">
+                            <button class="btn-plan current" data-plan="free">
                                 Текущий план
                             </button>
                         </div>
 
-                        <!-- Plan 2: Premium -->
+                        <!-- Plan 2: GO (Basic) -->
                         <div class="plan-card plan-premium" id="plan-go">
                             <div class="plan-popular">Популярный</div>
                             <div class="plan-top">
@@ -248,12 +251,104 @@
                             <ul class="plan-list">
                                 <li>✓ До 10,000 входных символов</li>
                                 <li>✓ 25 запросов в месяц</li>
-                                <li>✓ Все режимы AI</li>
                                 <li>✓ Настройки AI</li>
                                 <li>✓ Приоритетная поддержка</li>
+                                <li>✗ История сокращения</li>
+                                <li>✗ Свой API ключ </li>
+                                <li>✗ Приемиум режимы AI</li>
                             </ul>
-                            <button id="upgrade-btn" class="btn-plan upgrade">
+                            <button class="btn-plan upgrade" data-plan="go">
                                 Подключить GO
+                            </button>
+                        </div>
+
+                        <!-- Plan 3: GO Plus -->
+                        <div class="plan-card plan-premium" id="plan-go_plus">
+                            <div class="plan-top">
+                                <h3>GO +</h3>
+                                <div class="plan-price">
+                                    $3<span>/мес</span>
+                                </div>
+                            </div>
+                            <ul class="plan-list">
+                                <li>✓ До 20,000 входных символов</li>
+                                <li>✓ 50 запросов в месяц</li>
+                                <li>✓ Настройки AI</li>
+                                <li>✓ Приоритетная поддержка</li>
+                                <li>✓ История сокращения</li>
+                                <li>✓ Приемиум режимы AI</li>
+                                <li>✗ Свой API ключ</li>
+                            </ul>
+                            <button class="btn-plan upgrade" data-plan="go_plus">
+                                Подключить GO +
+                            </button>
+                        </div>
+
+                        <!-- Plan 4: GO Pro -->
+                        <div class="plan-card plan-premium" id="plan-go_pro">
+                            <div class="plan-top">
+                                <h3>GO Pro</h3>
+                                <div class="plan-price">
+                                    $5<span>/мес</span>
+                                </div>
+                            </div>
+                            <ul class="plan-list">
+                                <li>✓ До 40,000 входных символов</li>
+                                <li>✓ 100 запросов в месяц</li>
+                                <li>✓ Настройки AI</li>
+                                <li>✓ Приоритетная поддержка</li>
+                                <li>✓ История сокращения</li>
+                                <li>✓ Приемиум режимы AI</li>
+                                <li>✓ Свой API ключ</li>
+                            </ul>
+                            <button class="btn-plan upgrade" data-plan="go_pro">
+                                Подключить GO Pro
+                            </button>
+                        </div>
+
+                        <!-- Plan 5: GO Pro Plus -->
+                        <div class="plan-card plan-premium" id="plan-go_pro_plus">
+                            <div class="plan-top">
+                                <h3>GO Pro +</h3>
+                                <div class="plan-price">
+                                    $50<span>/год</span>
+                                </div>
+                            </div>
+                            <ul class="plan-list">
+                                <li>✓ До 50,000 входных символов</li>
+                                <li>✓ 300 запросов в месяц</li>
+                                <li>✓ Настройки AI</li>
+                                <li>✓ Приоритетная поддержка</li>
+                                <li>✓ История сокращения</li>
+                                <li>✓ Приемиум режимы AI</li>
+                                <li>✓ Свой API ключ</li>
+                            </ul>
+                            <button class="btn-plan upgrade" data-plan="go_pro_plus">
+                                Подключить GO Pro +
+                            </button>
+                        </div>
+
+                        <!-- Plan 6: Go Pro Ultra Max -->
+                        <div class="plan-card plan-ultra" id="plan-go_pro_ultra">
+                            <div class="plan-popular" style="background: #8b5cf6;">Легендарный</div>
+                            <div class="plan-top">
+                                <h3>GO Pro Ultra Max</h3>
+                                <div class="plan-price" style="color: #7c3aed;">
+                                    $80<span>/навсегда</span>
+                                </div>
+                            </div>
+                            <ul class="plan-list">
+                                <li>✓ До 100,000 входных символов</li>
+                                <li>✓ 500 запросов в месяц</li>
+                                <li>✓ Настройки AI</li>
+                                <li>✓ Приоритетная поддержка</li>
+                                <li>✓ История сокращения</li>
+                                <li>✓ Приемиум режимы AI</li>
+                                <li>✓ Свой API ключ</li>
+                            </ul>
+                            <button class="btn-plan upgrade" data-plan="go_pro_ultra"
+                                style="background: #7c3aed; color: white;">
+                                Подключить навсегда
                             </button>
                         </div>
                     </div>

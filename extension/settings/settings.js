@@ -4,6 +4,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize navigation first
   initNavigation();
 
+  // Handle deep linking via hash (e.g., #tab-subscriptions)
+  if (location.hash) {
+    const tabName = location.hash.replace("#tab-", "");
+    const navItem = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
+    if (navItem) {
+      navItem.click();
+    }
+  }
+
   // Then check auth
   chrome.identity.getAuthToken({ interactive: false }, (token) => {
     if (chrome.runtime.lastError || !token) {
@@ -47,20 +56,27 @@ function startAuthCheck() {
 
 // Navigation between tabs
 function initNavigation() {
-  const navItems = document.querySelectorAll(".nav-item");
+  const navItems = document.querySelectorAll(".nav-item:not(.nav-logout)");
+  const indicator = document.querySelector(".nav-indicator");
+
+  function moveIndicator(element) {
+    if (!element || !indicator) return;
+    indicator.style.top = element.offsetTop + "px";
+    indicator.style.height = element.offsetHeight + "px";
+  }
 
   navItems.forEach((item) => {
     item.addEventListener("click", function () {
       const tabId = this.getAttribute("data-tab");
 
-      // Handle logout
+      // Handle logout separately
       if (tabId === "logout") {
         handleLogout();
         return;
       }
 
       // Remove active from all nav items
-      navItems.forEach((nav) => nav.classList.remove("active"));
+      document.querySelectorAll(".nav-item").forEach((nav) => nav.classList.remove("active"));
 
       // Remove active from all tabs
       document.querySelectorAll(".content-tab").forEach((tab) => {
@@ -69,6 +85,7 @@ function initNavigation() {
 
       // Set active nav item
       this.classList.add("active");
+      moveIndicator(this);
 
       // Show selected tab
       const targetTab = document.getElementById("tab-" + tabId);
@@ -79,28 +96,107 @@ function initNavigation() {
     });
   });
 
+  // Initial position
+  const activeItem = document.querySelector(".nav-item.active");
+  if (activeItem) {
+    // Small delay to ensure styles are applied
+    setTimeout(() => moveIndicator(activeItem), 50);
+  }
+
+  // Handle window resize to keep indicator in place
+  window.addEventListener('resize', () => {
+    const currentActive = document.querySelector(".nav-item.active");
+    if (currentActive) moveIndicator(currentActive);
+  });
+
   console.log("Navigation initialized");
+}
+
+// Update User Profile UI
+function updateProfileUI(data) {
+  if (!data) return;
+  if (data.email) {
+    document.getElementById("user-email").textContent = data.email;
+  }
 }
 
 // Load user profile
 async function loadUserData(token) {
+  // 1. Check cache first
+  if (chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get("lastProfileData", (result) => {
+      if (result.lastProfileData) {
+        updateProfileUI(result.lastProfileData);
+      }
+    });
+  }
+
   try {
     const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
     if (data.email) {
-      document.getElementById("user-email").textContent = data.email;
+      const profileData = { email: data.email };
+      updateProfileUI(profileData);
+
+      if (chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ lastProfileData: profileData });
+      }
     }
   } catch (e) {
-    document.getElementById("user-email").textContent = "Не удалось загрузить";
+    console.warn("Failed to refresh user profile:", e);
   }
 
   loadSubscriptionData(token);
 }
 
+// Update Subscription UI
+function updateSubscriptionUI(sub) {
+  if (!sub) return;
+
+  const statusBadge = document.getElementById("subscription-status");
+  const requestsUsed = document.getElementById("requests-used");
+  const requestsLimit = document.getElementById("requests-limit");
+  const progressFill = document.getElementById("progress-fill");
+
+  if (statusBadge) {
+    statusBadge.textContent = sub.plan_name;
+    statusBadge.className =
+      sub.plan_id === "free" ? "badge badge-free" : "badge badge-premium";
+  }
+
+  if (requestsUsed) requestsUsed.textContent = sub.requests_used;
+  if (requestsLimit) requestsLimit.textContent = sub.max_requests;
+
+  if (progressFill) {
+    const percentage = (sub.requests_used / sub.max_requests) * 100;
+    progressFill.style.width = percentage + "%";
+  }
+
+  // Lock/Unlock AI settings
+  const locks = document.querySelectorAll(".premium-lock");
+  if (sub.ai_settings_enabled) {
+    locks.forEach((lock) => lock.classList.add("hidden"));
+  } else {
+    locks.forEach((lock) => lock.classList.remove("hidden"));
+  }
+
+  // Update plan cards (current plan UI)
+  updatePlanCardsUI(sub.plan_id);
+}
+
 // Load subscription data from backend
 async function loadSubscriptionData(token) {
+  // 1. Check cache first
+  if (chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get("lastSubscriptionData", (result) => {
+      if (result.lastSubscriptionData) {
+        updateSubscriptionUI(result.lastSubscriptionData);
+      }
+    });
+  }
+
   try {
     const res = await fetch("http://127.0.0.1:8000/me", {
       headers: {
@@ -110,32 +206,12 @@ async function loadSubscriptionData(token) {
     });
     const sub = await res.json();
 
-    const statusBadge = document.getElementById("subscription-status");
-    const requestsUsed = document.getElementById("requests-used");
-    const requestsLimit = document.getElementById("requests-limit");
-    const progressFill = document.getElementById("progress-fill");
+    // Update UI and Cache
+    updateSubscriptionUI(sub);
 
-    statusBadge.textContent = sub.plan_name;
-    statusBadge.className =
-      sub.plan_id === "free" ? "badge badge-free" : "badge badge-premium";
-
-    const used = sub.requests_used;
-    requestsUsed.textContent = used;
-    requestsLimit.textContent = sub.max_requests;
-
-    const percentage = (used / sub.max_requests) * 100;
-    progressFill.style.width = percentage + "%";
-
-    // Lock/Unlock AI settings
-    const locks = document.querySelectorAll(".premium-lock");
-    if (sub.ai_settings_enabled) {
-      locks.forEach((lock) => lock.classList.add("hidden"));
-    } else {
-      locks.forEach((lock) => lock.classList.remove("hidden"));
+    if (chrome.storage && chrome.storage.local) {
+      chrome.storage.local.set({ lastSubscriptionData: sub });
     }
-
-    // Update plan cards (current plan UI)
-    updatePlanCardsUI(sub.plan_id);
 
   } catch (e) {
     console.error("Failed to load subscription data:", e);
@@ -143,25 +219,49 @@ async function loadSubscriptionData(token) {
 }
 
 function updatePlanCardsUI(currentPlanId) {
-  const planFree = document.getElementById("plan-free");
-  const planGo = document.getElementById("plan-go");
+  const allPlanCards = document.querySelectorAll(".plan-card");
 
-  if (currentPlanId === 'free') {
-    planFree.querySelector(".btn-plan").textContent = "Текущий план";
-    planFree.querySelector(".btn-plan").classList.add("current");
+  allPlanCards.forEach(card => {
+    const btn = card.querySelector(".btn-plan");
+    const planId = card.getAttribute("data-plan") || card.id.replace("plan-", "");
 
-    const upgradeBtn = planGo.querySelector(".btn-plan");
-    upgradeBtn.textContent = "Подключить GO";
-    upgradeBtn.classList.remove("current");
-    upgradeBtn.classList.add("upgrade");
-  } else {
-    planFree.querySelector(".btn-plan").textContent = "Базовый план";
-    planFree.querySelector(".btn-plan").classList.remove("current");
+    if (planId === currentPlanId) {
+      btn.textContent = "Текущий план";
+      btn.classList.add("current");
+      btn.classList.remove("upgrade");
+      btn.disabled = true;
+    } else {
+      btn.classList.remove("current");
+      btn.classList.add("upgrade");
+      btn.disabled = false;
 
-    planGo.querySelector(".btn-plan").textContent = "Текущий план";
-    planGo.querySelector(".btn-plan").classList.remove("upgrade");
-    planGo.querySelector(".btn-plan").classList.add("current");
-  }
+      // Keep original text if it was set, or default to generic upgrade
+      if (planId === 'free') {
+        btn.textContent = "Базовый план";
+      } else {
+        // Find if button already has specific text from HTML
+        const originalText = btn.getAttribute("data-original-text") || btn.textContent.trim();
+        if (!btn.getAttribute("data-original-text")) {
+          btn.setAttribute("data-original-text", originalText);
+        }
+        btn.textContent = originalText;
+      }
+    }
+  });
+}
+
+// Update AI Settings UI
+function updateAISettingsUI(settings) {
+  if (!settings) return;
+  const simpleLevel = document.getElementById("simple-level");
+  const shortLevel = document.getElementById("short-level");
+  const pointsCount = document.getElementById("points-count");
+  const examplesCount = document.getElementById("examples-count");
+
+  if (simpleLevel) simpleLevel.value = settings.simple_level || 5;
+  if (shortLevel) shortLevel.value = settings.short_level || 5;
+  if (pointsCount) pointsCount.value = settings.points_count || 5;
+  if (examplesCount) examplesCount.value = settings.examples_count || 2;
 }
 
 // Initialize settings handlers
@@ -169,6 +269,16 @@ function initSettings() {
   // Load AI settings from backend
   chrome.identity.getAuthToken({ interactive: false }, async (token) => {
     if (!token) return;
+
+    // 1. Check cache first
+    if (chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get("lastAISettings", (result) => {
+        if (result.lastAISettings) {
+          updateAISettingsUI(result.lastAISettings);
+        }
+      });
+    }
+
     try {
       const res = await fetch("http://127.0.0.1:8000/settings", {
         headers: {
@@ -178,10 +288,11 @@ function initSettings() {
       });
       if (res.ok) {
         const settings = await res.json();
-        document.getElementById("simple-level").value = settings.simple_level || 5;
-        document.getElementById("short-level").value = settings.short_level || 5;
-        document.getElementById("points-count").value = settings.points_count || 5;
-        document.getElementById("examples-count").value = settings.examples_count || 2;
+        updateAISettingsUI(settings);
+
+        if (chrome.storage && chrome.storage.local) {
+          chrome.storage.local.set({ lastAISettings: settings });
+        }
       }
     } catch (e) {
       console.error("Failed to load AI settings:", e);
@@ -220,6 +331,11 @@ function initSettings() {
         if (res.ok) {
           msg.textContent = "Настройки сохранены!";
           msg.style.color = "#4caf50";
+
+          // Update cache
+          if (chrome.storage && chrome.storage.local) {
+            chrome.storage.local.set({ lastAISettings: settings });
+          }
         } else if (res.status === 403) {
           msg.textContent = "Требуется подписка GO";
           msg.style.color = "#f44336";
@@ -244,15 +360,19 @@ function initSettings() {
     );
   };
 
-  // Donate button
-  document.getElementById("donate-btn").onclick = () => {
-    window.open("https://www.buymeacoffee.com/yourusername", "_blank");
-  };
+  // Universal Upgrade Button Handler
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-plan.upgrade');
+    if (!btn) return;
 
-  // Upgrade button (Mock implementation)
-  document.getElementById("upgrade-btn").onclick = async () => {
+    const planId = btn.getAttribute('data-plan');
+    if (!planId) return;
+
     chrome.identity.getAuthToken({ interactive: false }, async (token) => {
-      if (!token) return;
+      if (!token) {
+        alert("Пожалуйста, авторизуйтесь");
+        return;
+      }
 
       try {
         const res = await fetch("http://127.0.0.1:8000/upgrade", {
@@ -262,11 +382,11 @@ function initSettings() {
             "Authorization": `Bearer ${token}`,
             "X-Extension-ID": chrome.runtime.id
           },
-          body: JSON.stringify({ plan_id: "go" })
+          body: JSON.stringify({ plan_id: planId })
         });
 
         if (res.ok) {
-          alert("Поздравляем! Вы успешно перешли на план GO");
+          alert(`Поздравляем! Вы успешно перешли на новый план.`);
           loadSubscriptionData(token); // Refresh UI
         } else {
           alert("Ошибка при обновлении плана.");
@@ -275,7 +395,7 @@ function initSettings() {
         console.error("Upgrade failed:", e);
       }
     });
-  };
+  });
 }
 
 // Handle logout

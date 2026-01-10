@@ -8,17 +8,19 @@ body {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     background: #f0f2f5;
     color: #333;
+    height: 100vh;
+    overflow: hidden;
     padding: 20px;
 }
 
 /* MAIN WRAPPER */
 .settings-wrapper {
     display: flex;
-    max-width: 100%;
-    min-height: calc(100vh - 40px);
+    width: 100%;
+    height: calc(100vh - 40px);
     margin: 0 auto;
     background: white;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     border-radius: 16px;
     overflow: hidden;
 }
@@ -28,15 +30,15 @@ body {
     width: 280px;
     background: #ffffff;
     border-right: 2px solid #f0f2f5;
-    position: sticky;
-    top: 20px;
-    height: calc(100vh - 40px);
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .sidebar-header {
     padding: 30px 20px;
     border-bottom: 2px solid #f0f2f5;
+    flex-shrink: 0;
 }
 
 .sidebar-header h1 {
@@ -47,6 +49,9 @@ body {
 
 .sidebar-nav {
     padding: 20px 0;
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
 }
 
 .nav-item {
@@ -61,21 +66,30 @@ body {
     font-size: 15px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: color 0.2s;
     text-align: left;
-    border-left: 3px solid transparent;
+    position: relative;
+    z-index: 2;
 }
 
 .nav-item:hover {
-    background: #f8f9fa;
     color: #2c3e50;
 }
 
 .nav-item.active {
-    background: #e1f0fa;
     color: #4285f4;
-    border-left-color: #4285f4;
     font-weight: 600;
+}
+
+.nav-indicator {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background: #e1f0fa;
+    border-left: 3px solid #4285f4;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1;
+    pointer-events: none;
 }
 
 .nav-item .icon {
@@ -86,6 +100,7 @@ body {
     margin-top: auto;
     border-top: 1px solid #f0f2f5;
     color: #e74c3c;
+    flex-shrink: 0;
 }
 
 .nav-logout:hover {
@@ -95,8 +110,10 @@ body {
 /* ===== CONTENT AREA ===== */
 .content-area {
     flex: 1;
-    padding: 40px 50px;
+    height: 100%;
     overflow-y: auto;
+    padding: 40px 50px;
+    background: white;
 }
 
 .content-tab {
@@ -426,6 +443,16 @@ body {
 .plan-premium {
     border-color: #3b82f6;
     background: #eff6ff;
+}
+
+.plan-ultra {
+    border-color: #7c3aed;
+    background: #f5f3ff;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.1);
+}
+
+.plan-ultra:hover {
+    box-shadow: 0 10px 25px rgba(124, 58, 237, 0.2);
 }
 
 .plan-popular {

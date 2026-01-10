@@ -185,6 +185,56 @@
   font-size: 14px;
 }
 
+/* Premium Credits/Limits UI */
+.limits-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+  animation: fadeIn 0.4s ease;
+}
+
+.limits-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.limits-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 12px;
+}
+
+.limits-text {
+  font-size: 15px;
+  color: #7f8c8d;
+  line-height: 1.6;
+  max-width: 400px;
+  margin-bottom: 30px;
+}
+
+.upgrade-cta-btn {
+  background: #4285f4;
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.upgrade-cta-btn:hover {
+  background: #3367d6;
+}
+
+.upgrade-cta-btn:active {
+  transform: translateY(1px);
+}
+
 .footer {
   border-top: 1px solid #eee;
   padding: 10px 20px;
