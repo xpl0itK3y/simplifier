@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Text Simplifier",
+    "name": "simplifier",
     "version": "0.0.1",
     "description": "Simplify complex text on any website with one click.",
     "permissions": [

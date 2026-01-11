@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Settings page loaded");
 
+  window.currentHistory = []; // Global store for delegation
+
   // Initialize navigation first
   initNavigation();
 
@@ -24,32 +26,38 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("User authenticated");
     loadUserData(token);
     initSettings();
+    initHistoryModal();
 
     // Запускаем периодическую проверку авторизации
     startAuthCheck();
   });
 });
 
-// Периодическая проверка авторизации
+// Периодическая проверка данных (авторизация + лимиты)
 function startAuthCheck() {
-  // Функция проверки
-  function checkAuth() {
+  function refreshData() {
     chrome.identity.getAuthToken({ interactive: false }, (token) => {
       if (chrome.runtime.lastError || !token) {
         // Пользователь вышел - закрываем страницу настроек
-        alert("Сессия завершена. Страница настроек будет закрыта.");
+        console.log("Auth lost, closing settings");
         window.close();
+        return;
+      }
+
+      // Обновляем данные о подписке, если вкладка активна
+      if (document.visibilityState === 'visible') {
+        loadSubscriptionData(token);
       }
     });
   }
 
-  // Проверка каждые 2 секунды
-  setInterval(checkAuth, 2000);
+  // Проверка каждые 5 секунд
+  setInterval(refreshData, 5000);
 
   // Проверка при возврате на вкладку
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      checkAuth();
+      refreshData();
     }
   });
 }
@@ -92,6 +100,13 @@ function initNavigation() {
       if (targetTab) {
         targetTab.classList.add("active");
         console.log("Switched to tab:", tabId);
+
+        // Load history data when switching to history tab
+        if (tabId === "history") {
+          chrome.identity.getAuthToken({ interactive: false }, (token) => {
+            if (token) loadHistory(token);
+          });
+        }
       }
     });
   });
@@ -110,6 +125,54 @@ function initNavigation() {
   });
 
   console.log("Navigation initialized");
+
+  // Fix for CSP: history locking button
+  const upgradeBtn = document.getElementById('upgrade-plan-history-btn');
+  if (upgradeBtn) {
+    upgradeBtn.onclick = () => {
+      const subTab = document.querySelector('.nav-item[data-tab="subscriptions"]');
+      if (subTab) subTab.click();
+    };
+  }
+
+  // Handle source link clicks for highlighting feature
+  document.addEventListener('click', (e) => {
+    const sourceLink = e.target.closest('.source-cell a, #detail-source');
+    if (!sourceLink) return;
+
+    let url = sourceLink.href;
+    if (!url || url === '#' || url.startsWith('javascript:')) return;
+
+    // Normalize URL: remove hash and trailing slash
+    try {
+      const urlObj = new URL(url);
+      urlObj.hash = '';
+      url = urlObj.toString().replace(/\/$/, "");
+    } catch (e) {
+      console.error("URL normalization failed", e);
+    }
+
+    // Find the original text
+    let originalText = '';
+    const historyRow = sourceLink.closest('tr');
+    if (historyRow && historyRow.dataset.index) {
+      const item = window.currentHistory[historyRow.dataset.index];
+      if (item) originalText = item.original_text;
+    } else if (sourceLink.id === 'detail-source') {
+      originalText = document.getElementById('detail-original').textContent;
+    }
+
+    if (originalText && originalText.trim()) {
+      console.log("Saving session highlight for:", url);
+      chrome.storage.local.set({
+        'pending_highlight': {
+          url: url,
+          text: originalText.trim(),
+          timestamp: Date.now()
+        }
+      });
+    }
+  });
 }
 
 // Update User Profile UI
@@ -180,6 +243,17 @@ function updateSubscriptionUI(sub) {
     locks.forEach((lock) => lock.classList.add("hidden"));
   } else {
     locks.forEach((lock) => lock.classList.remove("hidden"));
+  }
+
+  // History Access Control
+  const historyLock = document.getElementById("history-premium-lock");
+  const historyContainer = document.getElementById("history-container");
+  if (['free', 'go'].includes(sub.plan_id)) {
+    if (historyLock) historyLock.classList.remove("hidden");
+    if (historyContainer) historyContainer.classList.add("hidden");
+  } else {
+    if (historyLock) historyLock.classList.add("hidden");
+    if (historyContainer) historyContainer.classList.remove("hidden");
   }
 
   // Update plan cards (current plan UI)
@@ -395,6 +469,192 @@ function initSettings() {
         console.error("Upgrade failed:", e);
       }
     });
+  });
+}
+
+function initHistoryModal() {
+  const modal = document.getElementById('history-modal');
+  const closeBtn = document.getElementById('close-history-modal');
+  const copyBtn = document.getElementById('copy-history-result');
+
+  if (!modal || !closeBtn) return;
+
+  // Delegation for history table clicks
+  const historyList = document.getElementById('history-list');
+  if (historyList) {
+    historyList.addEventListener('click', (e) => {
+      const previewCell = e.target.closest('.text-preview');
+      if (previewCell) {
+        const index = previewCell.closest('tr').dataset.index;
+        if (window.currentHistory[index]) {
+          showHistoryDetail(window.currentHistory[index]);
+        }
+      }
+    });
+  }
+
+  function closeModal() {
+    modal.classList.add('closing');
+    modal.addEventListener('animationend', () => {
+      modal.classList.add('hidden');
+      modal.classList.remove('closing');
+    }, { once: true });
+  }
+
+  closeBtn.onclick = closeModal;
+
+  window.onclick = (event) => {
+    if (event.target === modal) closeModal();
+  };
+
+  if (copyBtn) {
+    copyBtn.onclick = () => {
+      const text = document.getElementById('detail-simplified').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = 'Скопировано! ✓';
+        setTimeout(() => copyBtn.textContent = originalText, 2000);
+      });
+    };
+  }
+}
+
+function showHistoryDetail(item) {
+  const modal = document.getElementById('history-modal');
+  if (!modal) return;
+
+  const date = new Date(item.timestamp).toLocaleString('ru-RU');
+  const modeMap = {
+    'simple': 'Просто',
+    'short': 'Кратко',
+    'key_points': 'Тезисно',
+    'examples': 'С примером'
+  };
+
+  document.getElementById('detail-date').textContent = date;
+  document.getElementById('detail-mode').textContent = modeMap[item.mode] || item.mode;
+
+  const sourceLink = document.getElementById('detail-source');
+  sourceLink.href = item.source_url || '#';
+  if (item.source_url && item.source_url.startsWith('http')) {
+    try {
+      sourceLink.textContent = new URL(item.source_url).hostname;
+    } catch (e) {
+      sourceLink.textContent = 'Открыть источник';
+    }
+  } else {
+    sourceLink.textContent = '—';
+  }
+
+  document.getElementById('detail-original').textContent = item.original_text;
+  document.getElementById('detail-simplified').textContent = item.simplified_text;
+
+  modal.classList.remove('hidden');
+}
+
+// Load History
+async function loadHistory(token) {
+  const historyList = document.getElementById("history-list");
+
+  // 1. Instant load from cache
+  if (chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get("lastHistoryData", (result) => {
+      if (result.lastHistoryData) {
+        console.log("Loading history from cache...");
+        renderHistory(result.lastHistoryData);
+      } else if (historyList) {
+        historyList.innerHTML = '<tr><td colspan="4" class="text-center">Загрузка...</td></tr>';
+      }
+    });
+  } else if (historyList) {
+    historyList.innerHTML = '<tr><td colspan="4" class="text-center">Загрузка...</td></tr>';
+  }
+
+  // 2. Refresh from backend
+  try {
+    const res = await fetch("http://127.0.0.1:8000/history", {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "X-Extension-ID": chrome.runtime.id
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      renderHistory(data);
+
+      // Update cache
+      if (chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ lastHistoryData: data });
+      }
+    }
+  } catch (e) {
+    console.error("Failed to refresh history:", e);
+    // If cache was empty and fetch failed
+    if (historyList && !historyList.querySelector('td:not(.text-center)')) {
+      historyList.innerHTML = '<tr><td colspan="4" class="text-center">Ошибка загрузки (проверьте сеть)</td></tr>';
+    }
+  }
+}
+
+function renderHistory(items) {
+  const historyList = document.getElementById("history-list");
+  const historyEmpty = document.getElementById("history-empty");
+
+  if (!historyList) return;
+
+  window.currentHistory = items || [];
+
+  if (!items || items.length === 0) {
+    historyList.innerHTML = "";
+    if (historyEmpty) historyEmpty.classList.remove("hidden");
+    return;
+  }
+
+  if (historyEmpty) historyEmpty.classList.add("hidden");
+
+  historyList.innerHTML = ""; // Clear existing
+
+  items.forEach((item, index) => {
+    const date = new Date(item.timestamp).toLocaleDateString('ru-RU', {
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+
+    // Clean mode name
+    const modeMap = {
+      'simple': 'Просто',
+      'short': 'Кратко',
+      'key_points': 'Тезисно',
+      'examples': 'С примером'
+    };
+    const modeName = modeMap[item.mode] || item.mode;
+
+    let sourceLabel = '—';
+    if (item.source_url && item.source_url.startsWith('http')) {
+      try {
+        sourceLabel = new URL(item.source_url).hostname;
+      } catch (e) {
+        sourceLabel = 'Источник';
+      }
+    }
+
+    const row = document.createElement('tr');
+    row.dataset.index = index;
+    row.innerHTML = `
+        <td>${date}</td>
+        <td class="mode-cell">${modeName}</td>
+        <td class="source-cell">
+          <a href="${item.source_url || '#'}" target="_blank" title="${item.source_url || ''}">
+            ${sourceLabel}
+          </a>
+        </td>
+        <td class="text-preview">
+          <strong>Оригинал:</strong> ${item.original_text.substring(0, 50)}...<br>
+          <strong>Итог:</strong> ${item.simplified_text.substring(0, 50)}...
+        </td>
+    `;
+
+    historyList.appendChild(row);
   });
 }
 

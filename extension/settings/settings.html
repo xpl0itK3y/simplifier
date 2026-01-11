@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Настройки - Text Simplifier</title>
+    <title>Настройки - simplifier</title>
     <link rel="stylesheet" href="settings.css" />
 </head>
 
@@ -12,7 +12,7 @@
         <!-- LEFT SIDEBAR -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h1>Text Simplifier</h1>
+                <h1>simplifier</h1>
             </div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-tab="account">
@@ -23,6 +23,9 @@
                 </button>
                 <button class="nav-item" data-tab="subscriptions">
                     <span>Подписки</span>
+                </button>
+                <button class="nav-item" data-tab="history">
+                    <span>История</span>
                 </button>
                 <button class="nav-item nav-logout" data-tab="logout">
                     <span>Выход</span>
@@ -109,10 +112,7 @@
             <div class="content-tab" id="tab-ai-settings">
                 <div class="tab-header">
                     <h1>Настройка AI</h1>
-                    <p>
-                        Настройте параметры обработки текста для каждого
-                        режима
-                    </p>
+                    <p>Настройте параметры обработки текста для каждого режима</p>
                 </div>
 
                 <div class="section">
@@ -353,6 +353,86 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            <!-- TAB 4: ИСТОРИЯ -->
+            <div class="content-tab" id="tab-history">
+                <div id="history-premium-lock" class="premium-lock-overlay hidden">
+                    <div class="lock-content">
+                        <span class="lock-icon">🔒</span>
+                        <h2>История доступна в плане GO +</h2>
+                        <p>Подключите GO +, чтобы сохранять все свои сокращения и иметь к ним доступ в любое время.</p>
+                        <button id="upgrade-plan-history-btn" class="btn-primary">Улучшить план</button>
+                    </div>
+                </div>
+
+                <div class="tab-header">
+                    <h1>История сокращений</h1>
+                    <p>Список всех ваших предыдущих запросов и результатов</p>
+                </div>
+
+                <div class="section">
+                    <div id="history-container">
+                        <div class="table-responsive">
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Режим</th>
+                                        <th>Источник</th>
+                                        <th>Текст</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-list">
+                                    <!-- History items will be injected here -->
+                                    <tr>
+                                        <td colspan="4" class="text-center">Загрузка истории...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="history-empty" class="empty-state hidden">
+                            <p>У вас пока нет истории сокращений.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Detail Modal -->
+    <div id="history-modal" class="modal-overlay hidden">
+        <div class="modal-content history-detail">
+            <div class="modal-header">
+                <h2>Детали упрощения</h2>
+                <button class="btn-close" id="close-history-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-row">
+                    <span class="detail-label">Дата:</span>
+                    <span id="detail-date" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Режим:</span>
+                    <span id="detail-mode" class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Источник:</span>
+                    <a id="detail-source" href="#" target="_blank" class="detail-value link"></a>
+                </div>
+
+                <div class="text-comparison">
+                    <div class="text-block">
+                        <h3>Оригинал</h3>
+                        <div id="detail-original" class="text-content"></div>
+                    </div>
+                    <div class="text-block">
+                        <h3>Результат</h3>
+                        <div id="detail-simplified" class="text-content"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="copy-history-result" class="btn-primary">Скопировать результат</button>
             </div>
         </div>
     </div>

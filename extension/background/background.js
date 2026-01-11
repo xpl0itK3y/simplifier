@@ -33,7 +33,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === 'SIMPLIFY_TEXT') {
-        handleStreamingSimplification(request, sender.tab.id);
+        const { text, mode, url } = request;
+        handleStreamingSimplification({ text, mode, url }, sender.tab.id);
         sendResponse({ status: 'started' });
         return true;
     }
@@ -98,7 +99,7 @@ async function sendMessageToTab(tabId, message) {
     }
 }
 
-async function handleStreamingSimplification({ text, mode }, tabId, retryCount = 0) {
+async function handleStreamingSimplification({ text, mode, url }, tabId, retryCount = 0) {
     try {
         // 1. Get Token
         const token = await getAuthToken(retryCount > 0).catch(err => {
@@ -114,7 +115,8 @@ async function handleStreamingSimplification({ text, mode }, tabId, retryCount =
             },
             body: JSON.stringify({
                 text: text,
-                mode: mode
+                mode: mode,
+                url: url
             })
         });
 
@@ -125,7 +127,7 @@ async function handleStreamingSimplification({ text, mode }, tabId, retryCount =
             if (response.status === 401 && retryCount === 0) {
                 // Token expired, retry once with fresh token
                 console.log('Token expired, retrying with fresh token...');
-                return await handleStreamingSimplification({ text, mode }, tabId, 1);
+                return await handleStreamingSimplification({ text, mode, url }, tabId, 1);
             }
             if (response.status === 429) {
                 throw new Error("Слишком быстро! Подождите пару секунд.");

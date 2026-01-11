@@ -14,7 +14,9 @@ from database import (
     get_user_subscription, 
     increment_usage, 
     get_all_plans, 
-    upgrade_user
+    upgrade_user,
+    add_history_item,
+    get_user_history
 )
 from auth import verify_google_token
 
@@ -46,6 +48,7 @@ client = openai.OpenAI(api_key=api_key)
 class SimplifyRequest(BaseModel):
     text: str
     mode: str
+    url: Optional[str] = None
 
 class UpgradeRequest(BaseModel):
     plan_id: str
@@ -93,7 +96,8 @@ def get_system_prompt(mode: str, settings: dict) -> str:
     else:
         return f"{base_prompt} Упрости этот текст."
 
-async def stream_generator(text: str, mode: str, settings: dict):
+async def stream_generator(text: str, mode: str, settings: dict, google_id: str = None, url: str = None, plan_id: str = None):
+    full_response = ""
     try:
         stream = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -106,8 +110,14 @@ async def stream_generator(text: str, mode: str, settings: dict):
         )
 
         for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                yield chunk.choices[0].delta.content
+            content = chunk.choices[0].delta.content
+            if content is not None:
+                full_response += content
+                yield content
+
+        # Save to history if user is GO+ or above
+        if google_id and full_response and plan_id not in ['free', 'go']:
+            add_history_item(google_id, text, full_response, mode, url)
 
     except Exception as e:
         print(f"CRITICAL ERROR in stream_generator: {e}")
@@ -156,9 +166,40 @@ async def simplify_text(
         raise HTTPException(status_code=429, detail="Слишком много запросов. Подождите немного.")
     
     return StreamingResponse(
-        stream_generator(simplify_request.text, simplify_request.mode, sub['settings']), 
+        stream_generator(
+            simplify_request.text, 
+            simplify_request.mode, 
+            sub['settings'],
+            google_id=user_info['id'],
+            url=simplify_request.url,
+            plan_id=sub['plan_id']
+        ), 
         media_type="text/plain"
     )
+
+@app.get("/history")
+async def get_history(
+    authorization: Optional[str] = Header(None),
+    x_extension_id: Optional[str] = Header(None),
+    limit: int = 50,
+    offset: int = 0
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    token = authorization.split(" ")[1]
+    user_info = verify_google_token(token, x_extension_id)
+
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    
+    # Check if user has access to history (GO+ or above)
+    sub = get_user_subscription(user_info['id'], user_info['email'])
+    if sub['plan_id'] in ['free', 'go']:
+        return [] # Or raise error, but empty list is safer for UI
+        
+    history = get_user_history(user_info['id'], limit, offset)
+    return history
 
 @app.get("/me")
 async def get_me(

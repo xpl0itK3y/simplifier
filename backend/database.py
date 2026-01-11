@@ -153,6 +153,20 @@ def init_db():
                 print(f"Migrating: adding {col} column...")
                 c.execute(f'ALTER TABLE users ADD COLUMN {col} {definition}')
 
+        # Create history table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                google_id TEXT NOT NULL,
+                original_text TEXT,
+                simplified_text TEXT,
+                mode TEXT,
+                source_url TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (google_id) REFERENCES users (google_id)
+            )
+        ''')
+
     # Pre-warm plan cache
     all_plans = []
     with get_db() as conn:
@@ -337,3 +351,25 @@ def increment_usage(google_id: str, limit: int) -> bool:
         ''', (current_time, google_id, limit))
         
         return c.rowcount > 0
+def add_history_item(google_id: str, original: str, simplified: str, mode: str, url: str) -> bool:
+    """Add a new history entry for the user"""
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO history (google_id, original_text, simplified_text, mode, source_url)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (google_id, original, simplified, mode, url))
+        return True
+
+def get_user_history(google_id: str, limit: int = 50, offset: int = 0) -> list:
+    """Get simplification history for a user, paginated"""
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('''
+            SELECT original_text, simplified_text, mode, source_url, timestamp 
+            FROM history 
+            WHERE google_id = ? 
+            ORDER BY timestamp DESC 
+            LIMIT ? OFFSET ?
+        ''', (google_id, limit, offset))
+        return [dict(row) for row in c.fetchall()]

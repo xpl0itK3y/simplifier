@@ -22,6 +22,248 @@ function initShadowDOM() {
   shadowRoot.appendChild(link);
 }
 
+// 0. CHECK FOR HIGHLIGHTS FROM HISTORY
+function checkForHighlights() {
+  chrome.storage.local.get('pending_highlight', (result) => {
+    const hl = result.pending_highlight;
+    if (!hl) return;
+
+    const now = Date.now();
+    // If the highlight is older than 5 minutes, it's probably from a previous session
+    if (now - hl.timestamp > 300000) {
+      chrome.storage.local.remove('pending_highlight');
+      return;
+    }
+
+    // Check if the URL matches (at least partially)
+    const currentUrl = window.location.href;
+    if (!isUrlMatch(currentUrl, hl.url)) {
+      return;
+    }
+
+    // Inject highlight styles into the main document to ensure visibility
+    if (!document.getElementById('simplifier-highlight-styles')) {
+      const style = document.createElement('style');
+      style.id = 'simplifier-highlight-styles';
+      style.textContent = `
+        mark.simplifier-highlighted-text {
+            background-color: #00ff00 !important; /* Neon Green */
+            color: #000 !important;
+            padding: 2px 0 !important;
+            margin: 0 !important;
+            border-radius: 3px !important;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.8) !important;
+            animation: simplifierPulse 1.5s infinite alternate !important;
+            position: relative !important;
+            z-index: 999999 !important;
+            display: inline !important;
+        }
+        @keyframes simplifierPulse {
+            from { box-shadow: 0 0 5px rgba(0, 255, 0, 0.5); background-color: #00ff00; }
+            to { box-shadow: 0 0 20px rgba(0, 255, 0, 1); background-color: #b2ff59; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    console.log("Match found! Attempting to locate text:", hl.text);
+
+    // Try highlighting with retries
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const tryHighlight = () => {
+      attempts++;
+      if (findAndHighlightText(hl.text)) {
+        console.log("Text highlighted on attempt " + attempts);
+        chrome.storage.local.remove('pending_highlight');
+      } else if (attempts < maxAttempts) {
+        setTimeout(tryHighlight, 1000);
+      } else {
+        // Keep it for a bit more in case of slow loads, but ultimately give up
+        if (attempts === maxAttempts) {
+          chrome.storage.local.remove('pending_highlight');
+        }
+      }
+    };
+
+    tryHighlight();
+  });
+}
+
+function isUrlMatch(url1, url2) {
+  const norm = (u) => {
+    try {
+      if (!u) return '';
+      const obj = new URL(u);
+      // Remove hash and trailing slash from path
+      let path = obj.host + obj.pathname;
+      if (path.endsWith('/')) path = path.slice(0, -1);
+      // Keep search but ignore protocol and www
+      return (path + obj.search).replace(/^www\./, "");
+    } catch (e) { return u; }
+  };
+  return norm(url1) === norm(url2);
+}
+
+function findAndHighlightText(targetText) {
+  if (!targetText || !targetText.trim()) return false;
+
+  // 1. Prepare target
+  // Handle &nbsp; and multiple spaces
+  const searchTarget = targetText.replace(/[\s\u00A0]+/g, ' ').trim().toLowerCase();
+  console.log("Searching for normalized text:", searchTarget);
+
+  // 2. Build DOM text map
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode: function (node) {
+      const parent = node.parentElement;
+      if (!parent) return NodeFilter.FILTER_REJECT;
+      const tag = parent.tagName.toLowerCase();
+      const badTags = ['script', 'style', 'noscript', 'textarea', 'option', 'canvas', 'svg', 'iframe'];
+      if (badTags.includes(tag)) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  }, false);
+
+  let combinedText = "";
+  let map = []; // Array of { node, offset } for every character in combinedText
+
+  let node;
+  while (node = walker.nextNode()) {
+    // Normalize &nbsp; in DOM text too
+    const text = node.nodeValue.replace(/\u00A0/g, ' ');
+    for (let i = 0; i < text.length; i++) {
+      combinedText += text[i];
+      map.push({ node, offset: i });
+    }
+    // Force a space between nodes to prevent merging words from different elements
+    combinedText += " ";
+    map.push(null);
+  }
+
+  // 3. Find match in combined text, ignoring whitespace differences
+  let collapsedText = "";
+  let collapsedToOriginalMap = [];
+
+  for (let i = 0; i < combinedText.length; i++) {
+    const char = combinedText[i];
+    if (/\s/.test(char)) {
+      if (collapsedText[collapsedText.length - 1] !== ' ') {
+        collapsedText += ' ';
+        collapsedToOriginalMap.push(i);
+      }
+    } else {
+      collapsedText += char;
+      collapsedToOriginalMap.push(i);
+    }
+  }
+
+  const matchIdx = collapsedText.toLowerCase().indexOf(searchTarget);
+
+  if (matchIdx !== -1) {
+    console.log("Text match found in DOM map at index:", matchIdx);
+
+    const startOrigIdx = collapsedToOriginalMap[matchIdx];
+    const endOrigIdx = collapsedToOriginalMap[matchIdx + searchTarget.length - 1];
+
+    const start = map[startOrigIdx];
+    const end = map[endOrigIdx];
+
+    if (start && end) {
+      try {
+        const range = document.createRange();
+        range.setStart(start.node, start.offset);
+        range.setEnd(end.node, end.offset + 1);
+
+        // Check visibility
+        const rects = range.getClientRects();
+        if (rects.length === 0) {
+          // Try to scroll into view anyway or show where it is?
+          console.warn("Text found but seems hidden (no rects).");
+        }
+
+        highlightRange(range);
+        console.log("Highlight applied successfully.");
+
+        // Extra scroll attempt in next tick
+        setTimeout(() => {
+          const el = document.querySelector('mark.simplifier-highlighted-text');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+
+        return true;
+      } catch (e) {
+        console.error("Critical error while creating range/highlight:", e);
+      }
+    }
+  }
+
+  console.log("Could not find text in the page content. Make sure the page is fully loaded or the text exists.");
+  return false;
+}
+
+// Safe, non-destructive highlighting for complex DOMs like Wikipedia
+function highlightRange(range) {
+  const nodes = [];
+  const walker = document.createTreeWalker(
+    range.commonAncestorContainer,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: function (node) {
+        if (range.intersectsNode(node)) return NodeFilter.FILTER_ACCEPT;
+        return NodeFilter.FILTER_REJECT;
+      }
+    },
+    false
+  );
+
+  let firstMark = null;
+  let curr;
+  while (curr = walker.nextNode()) nodes.push(curr);
+
+  nodes.forEach(node => {
+    const mark = document.createElement('mark');
+    mark.className = 'simplifier-highlighted-text';
+
+    const nodeRange = document.createRange();
+
+    // Set start
+    if (node === range.startContainer) {
+      nodeRange.setStart(node, range.startOffset);
+    } else {
+      nodeRange.setStart(node, 0);
+    }
+
+    // Set end
+    if (node === range.endContainer) {
+      nodeRange.setEnd(node, range.endOffset);
+    } else {
+      nodeRange.setEnd(node, node.nodeValue.length);
+    }
+
+    try {
+      nodeRange.surroundContents(mark);
+      if (!firstMark) firstMark = mark;
+    } catch (e) {
+      // If surroundContents fails (shouldn't happen with text nodes), skip or log
+      console.warn("Could not wrap text node safely:", e);
+    }
+  });
+
+  // Smooth scroll to the first marked segment
+  if (firstMark) {
+    firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// Run check
+if (document.readyState === 'complete') {
+  checkForHighlights();
+} else {
+  window.addEventListener('load', checkForHighlights);
+}
+
 // Global Message Listener (Handles Context Menu & Stream)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
@@ -106,12 +348,6 @@ async function showModal() {
   // Create Backdrop
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
-  // Close on backdrop click
-  backdrop.onclick = () => {
-    if (authCheckInterval) clearInterval(authCheckInterval);
-    if (shadowRoot.querySelector('.simplifier-modal')) shadowRoot.querySelector('.simplifier-modal').remove();
-    backdrop.remove();
-  };
 
   const modal = document.createElement('div');
   modal.className = 'simplifier-modal';
@@ -140,13 +376,24 @@ async function showModal() {
 
     // Event Listeners
     const closeBtn = modal.querySelector('.close-btn');
-    if (closeBtn) {
-      closeBtn.onclick = () => {
-        if (authCheckInterval) clearInterval(authCheckInterval);
+
+    function closeModal() {
+      if (authCheckInterval) clearInterval(authCheckInterval);
+
+      modal.classList.add('closing');
+      backdrop.classList.add('closing');
+
+      modal.addEventListener('animationend', () => {
         modal.remove();
         backdrop.remove();
-      };
+      }, { once: true });
     }
+
+    if (closeBtn) {
+      closeBtn.onclick = closeModal;
+    }
+
+    backdrop.onclick = closeModal;
 
     // Make Draggable
     const header = modal.querySelector('.modal-header');
@@ -176,6 +423,13 @@ let wasAuthenticated = null; // Отслеживаем предыдущее со
 
 function startAuthCheck(modal) {
   authCheckInterval = setInterval(() => {
+    // Безопасная проверка: если расширение было обновлено/выгружено, runtime.id исчезнет
+    if (!chrome.runtime?.id) {
+      console.log("Extension context invalidated, stopping background checks.");
+      if (authCheckInterval) clearInterval(authCheckInterval);
+      return;
+    }
+
     chrome.runtime.sendMessage({ action: 'CHECK_AUTH' }, (response) => {
       const isAuthenticated = response && response.isAuthenticated;
 
@@ -212,44 +466,20 @@ function startAuthCheck(modal) {
 }
 
 function makeDraggable(element, handle) {
-  let isDragging = false;
   let startX, startY;
 
-  handle.addEventListener('mousedown', (e) => {
-    isDragging = true;
-
-    // Get current position
-    const rect = element.getBoundingClientRect();
-
-    // Switch from translate(-50%, -50%) to fixed pixels coordinates
-    element.style.transform = 'none';
-    element.style.left = `${rect.left}px`;
-    element.style.top = `${rect.top}px`;
-    element.style.margin = '0'; // Reset any margins
-
-    startX = e.clientX;
-    startY = e.clientY;
-  });
-
-  document.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-
-    e.preventDefault(); // Prevent text selection
-
+  const onMouseMove = (e) => {
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
 
-    const currentLeft = parseFloat(element.style.left);
-    const currentTop = parseFloat(element.style.top);
-
-    let newLeft = currentLeft + dx;
-    let newTop = currentTop + dy;
+    const rect = element.getBoundingClientRect();
+    let newLeft = rect.left + dx;
+    let newTop = rect.top + dy;
 
     // Boundary Checks
     const maxLeft = window.innerWidth - element.offsetWidth;
     const maxTop = window.innerHeight - element.offsetHeight;
 
-    // Clamp values
     if (newLeft < 0) newLeft = 0;
     if (newTop < 0) newTop = 0;
     if (newLeft > maxLeft) newLeft = maxLeft;
@@ -260,10 +490,30 @@ function makeDraggable(element, handle) {
 
     startX = e.clientX;
     startY = e.clientY;
-  });
+  };
 
-  document.addEventListener('mouseup', () => {
-    isDragging = false;
+  const onMouseUp = () => {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  };
+
+  handle.addEventListener('mousedown', (e) => {
+    // Get current position
+    const rect = element.getBoundingClientRect();
+
+    // Switch from translate: -50% -50% to fixed pixels coordinates
+    element.style.translate = 'none';
+    element.style.left = `${rect.left}px`;
+    element.style.top = `${rect.top}px`;
+    element.style.margin = '0';
+
+    startX = e.clientX;
+    startY = e.clientY;
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+
+    e.preventDefault(); // Prevent text selection
   });
 }
 
@@ -275,7 +525,8 @@ async function startSimplification(text, mode, modalContainer) {
   chrome.runtime.sendMessage({
     action: 'SIMPLIFY_TEXT',
     text: text,
-    mode: mode
+    mode: mode,
+    url: window.location.href
   });
 }
 

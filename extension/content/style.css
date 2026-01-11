@@ -14,6 +14,26 @@
   pointer-events: none;
 }
 
+.simplifier-highlighted-text {
+  background: linear-gradient(120deg, rgba(255, 235, 59, 0.4) 0%, rgba(255, 235, 59, 0.2) 100%);
+  border-bottom: 2px solid #fbc02d;
+  border-radius: 2px;
+  padding: 1px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  animation: highlightPulse 2s infinite alternate;
+  display: inline;
+}
+
+@keyframes highlightPulse {
+  from {
+    background-color: rgba(255, 235, 59, 0.4);
+  }
+
+  to {
+    background-color: rgba(255, 235, 59, 0.1);
+  }
+}
+
 /* Backdrop */
 .modal-backdrop {
   position: fixed;
@@ -28,6 +48,10 @@
   animation: fadeIn 0.2s ease-out;
 }
 
+.modal-backdrop.closing {
+  animation: fadeOut 0.2s ease-out forwards;
+}
+
 /* Modal Window */
 .simplifier-modal {
   pointer-events: auto;
@@ -35,7 +59,7 @@
   /* Fixed to center it easily */
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  translate: -50% -50%;
   /* Center perfectly */
   width: 800px;
   /* Doubled size */
@@ -51,6 +75,10 @@
   animation: scaleIn 0.2s ease-out;
   display: flex;
   flex-direction: column;
+}
+
+.simplifier-modal.closing {
+  animation: scaleOut 0.2s ease-out forwards;
 }
 
 .modal-header {
@@ -257,11 +285,33 @@
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -45%);
+    scale: 0.95;
   }
 
   to {
     opacity: 1;
-    transform: translate(-50%, -50%);
+    scale: 1;
+  }
+}
+
+@keyframes scaleOut {
+  from {
+    opacity: 1;
+    scale: 1;
+  }
+
+  to {
+    opacity: 0;
+    scale: 0.95;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
   }
 }
