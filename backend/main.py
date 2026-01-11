@@ -160,6 +160,14 @@ async def simplify_text(
             detail="Лимит запросов исчерпан. Пожалуйста, обновите подписку."
         )
 
+    # Check premium modes
+    premium_modes = ['key_points', 'examples']
+    if simplify_request.mode in premium_modes and sub['plan_id'] == 'free':
+        raise HTTPException(
+            status_code=402,
+            detail="Режим доступен только в подписках GO и выше."
+        )
+
     # 3. Increment Usage & Stream
     increment_success = increment_usage(user_info['id'], sub['max_requests'])
     if not increment_success:

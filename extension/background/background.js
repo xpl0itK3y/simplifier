@@ -22,11 +22,31 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // Handle API calls from Content Script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'CHECK_AUTH') {
-        chrome.identity.getAuthToken({ interactive: false }, (token) => {
-            if (chrome.runtime.lastError) {
+        chrome.identity.getAuthToken({ interactive: false }, async (token) => {
+            if (chrome.runtime.lastError || !token) {
                 sendResponse({ isAuthenticated: false });
             } else {
-                sendResponse({ isAuthenticated: !!token });
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/me', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const profile = await response.json();
+                        // Cache the plan for instant UI updates
+                        chrome.storage.local.set({ 'user_plan': profile.plan_id });
+
+                        sendResponse({
+                            isAuthenticated: true,
+                            plan_id: profile.plan_id
+                        });
+                    } else {
+                        chrome.storage.local.remove('user_plan');
+                        sendResponse({ isAuthenticated: false });
+                    }
+                } catch (e) {
+                    chrome.storage.local.remove('user_plan');
+                    sendResponse({ isAuthenticated: false });
+                }
             }
         });
         return true;
@@ -121,20 +141,24 @@ async function handleStreamingSimplification({ text, mode, url }, tabId, retryCo
         });
 
         if (!response.ok) {
+            let errorText = "Ошибка сервера";
+            try {
+                const errorData = await response.json();
+                errorText = errorData.detail || errorText;
+            } catch (e) {
+                const rawText = await response.text();
+                errorText = rawText || errorText;
+            }
+
             if (response.status === 402) {
-                throw new Error("CREDITS_EXHAUSTED");
+                throw new Error("CREDITS_EXHAUSTED:" + errorText);
             }
             if (response.status === 401 && retryCount === 0) {
                 // Token expired, retry once with fresh token
                 console.log('Token expired, retrying with fresh token...');
                 return await handleStreamingSimplification({ text, mode, url }, tabId, 1);
             }
-            if (response.status === 429) {
-                throw new Error("Слишком быстро! Подождите пару секунд.");
-            }
-
-            const errText = await response.text();
-            throw new Error(`Server Error: ${response.status} - ${errText}`);
+            throw new Error(errorText);
         }
 
         const reader = response.body.getReader();
@@ -161,18 +185,21 @@ async function handleStreamingSimplification({ text, mode, url }, tabId, retryCo
         console.error('Simplification error:', error);
 
         // Send specific error codes to UI
-        let userMessage = 'Ошибка подключения.';
+        let userMessage = error.message || 'Ошибка подключения.';
+        let errorCode = null;
+
         if (error.message === 'AUTH_REQUIRED') {
+            errorCode = 'LOGIN_REQUIRED';
             userMessage = 'LOGIN_REQUIRED';
-        } else if (error.message === 'CREDITS_EXHAUSTED') {
-            userMessage = 'CREDITS_EXHAUSTED';
-        } else {
-            userMessage = error.message;
+        } else if (error.message.startsWith('CREDITS_EXHAUSTED:')) {
+            errorCode = 'CREDITS_EXHAUSTED';
+            userMessage = error.message.split('CREDITS_EXHAUSTED:')[1];
         }
 
         await sendMessageToTab(tabId, {
             action: 'STREAM_ERROR',
-            error: userMessage
+            error: userMessage,
+            errorCode: errorCode
         });
     }
 }

@@ -301,17 +301,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === 'STREAM_ERROR') {
-      if (request.error === 'LOGIN_REQUIRED') {
-        fetchTemplate('content/components/login.html', resultContent).then(() => {
-          const loginBtn = shadowRoot.querySelector('#login-inline-btn');
-          if (loginBtn) {
-            loginBtn.onclick = () => {
-              alert("Пожалуйста, нажмите на расширение еще раз, чтобы авторизоваться.");
-            };
-          }
-        });
-      } else if (request.error === 'CREDITS_EXHAUSTED') {
+      const { error, errorCode } = request;
+
+      if (errorCode === 'LOGIN_REQUIRED' || error === 'LOGIN_REQUIRED') {
+        showLoginPrompt(modal); // Helper we already have
+      } else if (errorCode === 'CREDITS_EXHAUSTED') {
         fetchTemplate('content/components/credits.html', resultContent).then(() => {
+          const titleEl = shadowRoot.querySelector('.limits-title');
+          const textEl = shadowRoot.querySelector('.limits-text');
+          if (titleEl && error) titleEl.textContent = error;
+          if (textEl) textEl.innerHTML = "Пожалуйста, обновите подписку в настройках, чтобы продолжить использование этого режима или увеличить лимит символов.";
+
           const upgradeBtn = shadowRoot.querySelector('#upgrade-limits-btn');
           if (upgradeBtn) {
             upgradeBtn.onclick = () => {
@@ -320,11 +320,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
         });
       } else {
-        const errorSpan = document.createElement('span');
-        errorSpan.className = 'error-msg';
-        errorSpan.textContent = request.error;
-        resultContent.innerHTML = '';
-        resultContent.appendChild(errorSpan);
+        // Generic Error with "Upgrade" context if it looks like a limit
+        const lowerErr = error.toLowerCase();
+        const isLimitError = lowerErr.includes('лимит') ||
+          lowerErr.includes('план') ||
+          lowerErr.includes('макс') ||
+          lowerErr.includes('длинный');
+
+        resultContent.innerHTML = `
+          <div class="error-container" style="text-align: center; padding: 20px;">
+            <span class="error-msg" style="display: block; margin-bottom: 15px;">${error}</span>
+            ${isLimitError ? `
+              <button class="action-btn active" id="error-upgrade-btn" style="margin: 0 auto;">Улучшить план</button>
+            ` : ''}
+          </div>
+        `;
+
+        const upgradeBtn = resultContent.querySelector('#error-upgrade-btn');
+        if (upgradeBtn) {
+          upgradeBtn.onclick = () => {
+            chrome.runtime.sendMessage({ action: "OPEN_SETTINGS" });
+          };
+        }
       }
     }
   }
@@ -363,15 +380,20 @@ async function showModal() {
       previewEl.textContent = `${currentSelectionText.substring(0, 100)}${currentSelectionText.length > 100 ? '...' : ''}`;
     }
 
-    // Check Auth Status immediately
-    chrome.runtime.sendMessage({ action: 'CHECK_AUTH' }, (response) => {
-      if (!response || !response.isAuthenticated) {
-        // User is NOT logged in
-        showLoginPrompt(modal);
+    // 1. Check Cache first for instant UI
+    chrome.storage.local.get('user_plan', (data) => {
+      if (data.user_plan) {
+        updateModalUI(modal, true, data.user_plan);
       }
 
-      // Запускаем периодическую проверку авторизации (для входа И выхода)
-      startAuthCheck(modal);
+      // 2. Check Auth Status immediately (and update plan)
+      chrome.runtime.sendMessage({ action: 'CHECK_AUTH' }, (response) => {
+        const isAuthenticated = response && response.isAuthenticated;
+        updateModalUI(modal, isAuthenticated, response?.plan_id);
+
+        // Запускаем периодическую проверку авторизации (для входа И выхода)
+        startAuthCheck(modal);
+      });
     });
 
     // Event Listeners
@@ -402,6 +424,11 @@ async function showModal() {
     const buttons = modal.querySelectorAll('.action-btn');
     buttons.forEach(btn => {
       btn.onclick = async () => {
+        if (btn.classList.contains('premium-locked')) {
+          chrome.runtime.sendMessage({ action: "OPEN_SETTINGS" });
+          return;
+        }
+
         // UI Update
         buttons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -433,36 +460,53 @@ function startAuthCheck(modal) {
     chrome.runtime.sendMessage({ action: 'CHECK_AUTH' }, (response) => {
       const isAuthenticated = response && response.isAuthenticated;
 
-      // Если состояние изменилось
+      // Если состояние изменилось (или это первая проверка в интервале)
       if (wasAuthenticated !== isAuthenticated) {
         wasAuthenticated = isAuthenticated;
-
-        const buttons = modal.querySelectorAll('.actions .action-btn');
-        const resultDiv = modal.querySelector('#result-content');
-
-        if (isAuthenticated) {
-          // Пользователь ВОШЕЛ
-          buttons.forEach(b => {
-            b.style.opacity = '1';
-            b.style.pointerEvents = 'auto';
-            b.style.cursor = 'pointer';
-          });
-
-          if (resultDiv) {
-            fetchTemplate('content/components/instruction.html', resultDiv).then(() => {
-              const previewEl = resultDiv.querySelector('#selection-preview');
-              if (previewEl) {
-                previewEl.textContent = `${currentSelectionText.substring(0, 100)}${currentSelectionText.length > 100 ? '...' : ''}`;
-              }
-            });
-          }
-        } else {
-          // Пользователь ВЫШЕЛ
-          showLoginPrompt(modal);
-        }
+        updateModalUI(modal, isAuthenticated, response?.plan_id);
       }
     });
-  }, 2000); // Проверка каждые 2 секунды
+  }, 2000);
+}
+
+function updateModalUI(modal, isAuthenticated, planId) {
+  const buttons = modal.querySelectorAll('.actions .action-btn');
+  const resultDiv = modal.querySelector('#result-content');
+
+  if (isAuthenticated) {
+    // Пользователь ВОШЕЛ
+    const premiumModes = ['key_points', 'examples'];
+
+    buttons.forEach(b => {
+      const mode = b.dataset.mode;
+      const isPremium = premiumModes.includes(mode);
+
+      if (isPremium && planId === 'free') {
+        b.style.display = 'none';
+      } else {
+        b.style.display = 'inline-block'; // Or however they are styled
+        b.style.opacity = '1';
+        b.style.pointerEvents = 'auto';
+        b.style.cursor = 'pointer';
+
+        if (mode === 'key_points') b.title = "Главные мысли в виде списка";
+        if (mode === 'examples') b.title = "Объяснение с примером из жизни";
+      }
+    });
+
+    // Показываем инструкцию только если там сейчас не результат и не спиннер
+    if (resultDiv && !resultDiv.querySelector('.result-text') && !resultDiv.querySelector('.loading')) {
+      fetchTemplate('content/components/instruction.html', resultDiv).then(() => {
+        const previewEl = resultDiv.querySelector('#selection-preview');
+        if (previewEl) {
+          previewEl.textContent = `${currentSelectionText.substring(0, 100)}${currentSelectionText.length > 100 ? '...' : ''}`;
+        }
+      });
+    }
+  } else {
+    // Пользователь ВЫШЕЛ
+    showLoginPrompt(modal);
+  }
 }
 
 function makeDraggable(element, handle) {

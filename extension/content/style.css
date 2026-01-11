@@ -151,6 +151,30 @@
   color: #2980b9;
 }
 
+.action-btn.premium-locked {
+  position: relative;
+  opacity: 0.7 !important;
+  filter: grayscale(1);
+  cursor: not-allowed !important;
+  background: #f8f9fa !important;
+  border-color: #eee !important;
+  color: #999 !important;
+}
+
+.action-btn.premium-locked:hover {
+  background: #f8f9fa !important;
+  border-color: #ddd !important;
+}
+
+.action-btn.premium-locked::after {
+  content: '🔒';
+  position: absolute;
+  top: -8px;
+  right: -5px;
+  font-size: 12px;
+  filter: none;
+}
+
 .result-area {
   background: #fcfcfc;
   /* Very light gray, almost white */
