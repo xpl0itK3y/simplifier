@@ -1,25 +1,29 @@
 <div class="modal-header">
     <span class="modal-title">simplifier</span>
-    <span class="close-btn" title="Закрыть">&times;</span>
+    <span class="close-btn" title="Закрыть" data-i18n="modal.close" data-i18n-attr="title">&times;</span>
 </div>
 <div class="modal-body">
     <div class="actions">
-        <button class="action-btn" data-mode="simple" title="Объяснение простым языком без жаргона">Просто</button>
-        <button class="action-btn" data-mode="short" title="Сжатие всего текста в одно предложение">Кратко</button>
-        <button class="action-btn" data-mode="key_points" title="Главные мысли в виде списка"
-            style="display: none;">Тезисно</button>
-        <button class="action-btn" data-mode="examples" title="Объяснение с примером из жизни" style="display: none;">С
-            примером</button>
+        <button class="action-btn" data-mode="simple" data-i18n-title="modal.simple_title"
+            title="Объяснение простым языком без жаргона"><span data-i18n="modal.simple">Просто</span></button>
+        <button class="action-btn" data-mode="short" data-i18n-title="modal.short_title"
+            title="Сжатие всего текста в одно предложение"><span data-i18n="modal.short">Кратко</span></button>
+        <button class="action-btn" data-mode="key_points" data-i18n-title="modal.key_points_title"
+            title="Главные мысли в виде списка" style="display: none;"><span
+                data-i18n="modal.key_points">Тезисно</span></button>
+        <button class="action-btn" data-mode="examples" data-i18n-title="modal.examples_title"
+            title="Объяснение с примером из жизни" style="display: none;"><span data-i18n="modal.examples">С
+                примером</span></button>
     </div>
     <div id="result-content" class="result-area">
         <div class="result-text" style="color: #888;">
-            <strong>Выделенный текст:</strong><br>
+            <strong data-i18n="modal.selected">Выделенный текст:</strong><br>
             "<span id="selection-preview"></span>"
             <br><br>
-            Выберите режим упрощения выше.
+            <span data-i18n="modal.choose_mode">Выберите режим упрощения выше.</span>
         </div>
     </div>
 </div>
-<div class="footer">
+<div class="footer" data-i18n="modal.powered_by">
     Работает на AI (Stream)
 </div>

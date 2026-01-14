@@ -13,6 +13,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const logoutBtn = document.getElementById("logout-btn");
   const settingsBtn = document.getElementById("settings-btn");
 
+  // Initialize language
+  const lang = await window.i18n.getCurrentLang();
+  window.i18n.setCachedLang(lang);
+  window.i18n.applyI18n(document);
+
   // Navigation to settings
   settingsBtn.onclick = () => {
     if (settingsBtn.classList.contains("disabled")) return;
@@ -62,16 +67,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Check backend health
   async function checkBackendHealth() {
+    const t = window.i18n.t;
     try {
       const response = await fetch("http://127.0.0.1:8000/health");
       if (response.ok) {
-        serverStatus.textContent = "Backend готов";
+        serverStatus.textContent = t('popup.server_ready');
         serverDot.className = "dot online";
       } else {
         throw new Error();
       }
     } catch (e) {
-      serverStatus.textContent = "Backend offline";
+      serverStatus.textContent = t('popup.server_offline');
       serverDot.className = "dot offline";
     }
   }
@@ -103,6 +109,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const sub = await response.json();
         const subData = {
           plan_name: sub.plan_name,
+          plan_id: sub.plan_id, // Ensure we store plan_id
           requests_remaining: sub.max_requests - sub.requests_used
         };
 
@@ -123,7 +130,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!data) return;
     const planNameEl = document.getElementById("plan-name");
     const requestsRemainingEl = document.getElementById("requests-remaining");
-    if (planNameEl) planNameEl.textContent = data.plan_name;
+
+    if (planNameEl) {
+      if (data.plan_id) {
+        const planKey = 'subs.' + (data.plan_id === 'go_pro_plus' ? 'go_pro' : data.plan_id);
+        const planName = window.i18n.t(planKey) !== planKey ? window.i18n.t(planKey) : data.plan_name;
+        planNameEl.textContent = planName;
+      } else {
+        planNameEl.textContent = data.plan_name;
+      }
+    }
+
     if (requestsRemainingEl) requestsRemainingEl.textContent = data.requests_remaining;
   }
 
@@ -171,8 +188,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         })
           .then((res) => res.json())
           .then((data) => {
+            const defaultName = window.i18n.t('popup.user');
             const profileData = {
-              name: data.name || "Пользователь",
+              name: data.name || defaultName,
               email: data.email || "",
               picture: data.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || "?")}&background=667eea&color=fff&size=96`
             };
@@ -187,8 +205,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           })
           .catch(() => {
             // Only update if no cached data
-            if (userNameEl.textContent === "Загрузка...") {
-              userNameEl.textContent = "Пользователь";
+            if (userNameEl.textContent === window.i18n.t('account.loading') || userNameEl.textContent === "Загрузка...") {
+              userNameEl.textContent = window.i18n.t('popup.user');
               userEmailEl.textContent = "";
               userAvatarEl.src = "https://ui-avatars.com/api/?name=?&background=667eea&color=fff&size=96";
             }

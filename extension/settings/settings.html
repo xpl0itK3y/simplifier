@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Настройки - simplifier</title>
+    <title data-i18n="popup.settings">Настройки</title>
     <link rel="stylesheet" href="settings.css" />
 </head>
 
@@ -16,19 +16,22 @@
             </div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-tab="account">
-                    <span>Аккаунт</span>
+                    <span data-i18n="nav.account">Аккаунт</span>
                 </button>
                 <button class="nav-item" data-tab="ai-settings">
-                    <span>Настройка AI</span>
+                    <span data-i18n="nav.ai_settings">Настройка AI</span>
                 </button>
                 <button class="nav-item" data-tab="subscriptions">
-                    <span>Подписки</span>
+                    <span data-i18n="nav.subscriptions">Подписки</span>
                 </button>
                 <button class="nav-item" data-tab="history">
-                    <span>История</span>
+                    <span data-i18n="nav.history">История</span>
+                </button>
+                <button class="nav-item" data-tab="language">
+                    <span data-i18n="nav.language">Язык</span>
                 </button>
                 <button class="nav-item nav-logout" data-tab="logout">
-                    <span>Выход</span>
+                    <span data-i18n="nav.logout">Выход</span>
                 </button>
                 <div class="nav-indicator"></div>
             </nav>
@@ -39,17 +42,17 @@
             <!-- TAB 1: АККАУНТ -->
             <div class="content-tab active" id="tab-account">
                 <div class="tab-header">
-                    <h1>Аккаунт</h1>
-                    <p>Управление профилем и информацией</p>
+                    <h1 data-i18n="account.title">Аккаунт</h1>
+                    <p data-i18n="account.subtitle">Управление профилем и информацией</p>
                 </div>
 
                 <div class="section">
-                    <h2>Информация</h2>
+                    <h2 data-i18n="account.info">Информация</h2>
 
                     <div class="info-row">
                         <div class="info-label">
-                            <strong>Email</strong>
-                            <p id="user-email" class="info-text">
+                            <strong data-i18n="account.email">Email</strong>
+                            <p id="user-email" class="info-text" data-i18n="account.loading">
                                 Загрузка...
                             </p>
                         </div>
@@ -57,23 +60,25 @@
 
                     <div class="info-row">
                         <div class="info-label">
-                            <strong>Статус подписки</strong>
+                            <strong data-i18n="account.subscription_status">Статус подписки</strong>
                             <p class="info-text">
-                                <span id="subscription-status" class="badge badge-free">Бесплатно</span>
+                                <span id="subscription-status" class="badge badge-free"
+                                    data-i18n="account.free">Бесплатно</span>
                             </p>
                         </div>
-                        <button id="cancel-subscription-btn" class="btn-danger hidden">
+                        <button id="cancel-subscription-btn" class="btn-danger hidden"
+                            data-i18n="account.cancel_subscription">
                             Отменить подписку
                         </button>
                     </div>
 
                     <div class="info-row">
                         <div class="info-label">
-                            <strong>Использовано запросов</strong>
+                            <strong data-i18n="account.requests_used">Использовано запросов</strong>
                             <p class="info-text">
-                                <span id="requests-used">0</span> из
-                                <span id="requests-limit">15</span> в этом
-                                месяце
+                                <span id="requests-used">0</span> <span data-i18n="account.of">из</span>
+                                <span id="requests-limit">15</span> <span data-i18n="account.this_month">в этом
+                                    месяце</span>
                             </p>
                         </div>
                         <div class="progress-bar">
@@ -83,25 +88,25 @@
 
                     <div class="info-row">
                         <div class="info-label">
-                            <strong>Дополнительно</strong>
-                            <p class="info-text">
+                            <strong data-i18n="account.additional">Дополнительно</strong>
+                            <p class="info-text" data-i18n="account.additional_desc">
                                 История платежей, чеки и обратная связь
                             </p>
                         </div>
-                        <button id="feedback-btn" class="btn-secondary">
+                        <button id="feedback-btn" class="btn-secondary" data-i18n="account.feedback">
                             Обратная связь
                         </button>
                     </div>
 
                     <div class="info-row">
                         <div class="info-label">
-                            <strong>Поддержка автора</strong>
-                            <p class="info-text">
+                            <strong data-i18n="account.support_author">Поддержка автора</strong>
+                            <p class="info-text" data-i18n="account.support_desc">
                                 Если вам нравится расширение, поддержите
                                 разработку
                             </p>
                         </div>
-                        <button id="donate-btn" class="btn-secondary">
+                        <button id="donate-btn" class="btn-secondary" data-i18n="account.buy_coffee">
                             ☕ Угостить кофе
                         </button>
                     </div>
@@ -111,95 +116,95 @@
             <!-- TAB 2: НАСТРОЙКА AI -->
             <div class="content-tab" id="tab-ai-settings">
                 <div class="tab-header">
-                    <h1>Настройка AI</h1>
-                    <p>Настройте параметры обработки текста для каждого режима</p>
+                    <h1 data-i18n="ai.title">Настройка AI</h1>
+                    <p data-i18n="ai.subtitle">Настройте параметры обработки текста для каждого режима</p>
                 </div>
 
                 <div class="section">
-                    <h2>Режимы обработки</h2>
+                    <h2 data-i18n="ai.modes">Режимы обработки</h2>
 
                     <!-- Mode 1: Просто -->
                     <div class="mode-card">
                         <div class="mode-header">
-                            <h3>Просто</h3>
-                            <span class="mode-badge">Базовая настройка</span>
+                            <h3 data-i18n="ai.simple">Просто</h3>
+                            <span class="mode-badge" data-i18n="ai.basic_setting">Базовая настройка</span>
                         </div>
                         <div class="slider-group">
-                            <label>Степень упрощения</label>
+                            <label data-i18n="ai.simple_level">Степень упрощения</label>
                             <input type="range" id="simple-level" min="1" max="10" value="5" class="slider" />
                             <div class="slider-labels">
-                                <span>Немного проще</span>
-                                <span>Максимально просто</span>
+                                <span data-i18n="ai.simple_min">Немного проще</span>
+                                <span data-i18n="ai.simple_max">Максимально просто</span>
                             </div>
                         </div>
                         <div class="premium-lock hidden" data-mode="simple">
                             <span class="lock-icon">🔒</span>
-                            <p>Доступно с подпиской <strong>GO</strong></p>
+                            <p><span data-i18n="ai.premium_lock">Доступно с подпиской</span> <strong>GO</strong></p>
                         </div>
                     </div>
 
                     <!-- Mode 2: Кратко -->
                     <div class="mode-card">
                         <div class="mode-header">
-                            <h3>Кратко</h3>
-                            <span class="mode-badge">Базовая настройка</span>
+                            <h3 data-i18n="ai.short">Кратко</h3>
+                            <span class="mode-badge" data-i18n="ai.basic_setting">Базовая настройка</span>
                         </div>
                         <div class="slider-group">
-                            <label>Степень сжатия</label>
+                            <label data-i18n="ai.short_level">Степень сжатия</label>
                             <input type="range" id="short-level" min="1" max="10" value="5" class="slider" />
                             <div class="slider-labels">
-                                <span>Умеренное сжатие</span>
-                                <span>Максимально кратко</span>
+                                <span data-i18n="ai.short_min">Умеренное сжатие</span>
+                                <span data-i18n="ai.short_max">Максимально кратко</span>
                             </div>
                         </div>
                         <div class="premium-lock hidden" data-mode="short">
                             <span class="lock-icon">🔒</span>
-                            <p>Доступно с подпиской <strong>GO</strong></p>
+                            <p><span data-i18n="ai.premium_lock">Доступно с подпиской</span> <strong>GO</strong></p>
                         </div>
                     </div>
 
                     <!-- Mode 3: Тезисно -->
                     <div class="mode-card">
                         <div class="mode-header">
-                            <h3>Тезисно</h3>
-                            <span class="mode-badge">Базовая настройка</span>
+                            <h3 data-i18n="ai.key_points">Тезисно</h3>
+                            <span class="mode-badge" data-i18n="ai.basic_setting">Базовая настройка</span>
                         </div>
                         <div class="slider-group">
-                            <label>Количество тезисов</label>
+                            <label data-i18n="ai.points_count">Количество тезисов</label>
                             <input type="range" id="points-count" min="3" max="15" value="5" class="slider" />
                             <div class="slider-labels">
-                                <span>3 тезиса</span>
-                                <span>15 тезисов</span>
+                                <span data-i18n="ai.points_min">3 тезиса</span>
+                                <span data-i18n="ai.points_max">15 тезисов</span>
                             </div>
                         </div>
                         <div class="premium-lock hidden" data-mode="key_points">
                             <span class="lock-icon">🔒</span>
-                            <p>Доступно с подпиской <strong>GO</strong></p>
+                            <p><span data-i18n="ai.premium_lock">Доступно с подпиской</span> <strong>GO</strong></p>
                         </div>
                     </div>
 
                     <!-- Mode 4: С примером -->
                     <div class="mode-card">
                         <div class="mode-header">
-                            <h3>С примером</h3>
-                            <span class="mode-badge">Базовая настройка</span>
+                            <h3 data-i18n="ai.examples">С примером</h3>
+                            <span class="mode-badge" data-i18n="ai.basic_setting">Базовая настройка</span>
                         </div>
                         <div class="slider-group">
-                            <label>Количество примеров</label>
+                            <label data-i18n="ai.examples_count">Количество примеров</label>
                             <input type="range" id="examples-count" min="1" max="5" value="2" class="slider" />
                             <div class="slider-labels">
-                                <span>1 пример</span>
-                                <span>5 примеров</span>
+                                <span data-i18n="ai.examples_min">1 пример</span>
+                                <span data-i18n="ai.examples_max">5 примеров</span>
                             </div>
                         </div>
                         <div class="premium-lock hidden" data-mode="examples">
                             <span class="lock-icon">🔒</span>
-                            <p>Доступно с подпиской <strong>GO</strong></p>
+                            <p><span data-i18n="ai.premium_lock">Доступно с подпиской</span> <strong>GO</strong></p>
                         </div>
                     </div>
 
                     <div class="action-row">
-                        <button id="apply-ai-settings" class="btn-primary">
+                        <button id="apply-ai-settings" class="btn-primary" data-i18n="ai.apply">
                             ✓ Применить настройки
                         </button>
                         <span id="ai-status-msg" class="status-msg"></span>
@@ -210,55 +215,57 @@
             <!-- TAB 3: ПОДПИСКИ -->
             <div class="content-tab" id="tab-subscriptions">
                 <div class="tab-header">
-                    <h1>Подписки</h1>
-                    <p>Выберите подходящий тарифный план</p>
+                    <h1 data-i18n="subs.title">Подписки</h1>
+                    <p data-i18n="subs.subtitle">Выберите подходящий тарифный план</p>
                 </div>
 
                 <div class="section">
-                    <h2>Тарифные планы</h2>
+                    <h2 data-i18n="subs.plans">Тарифные планы</h2>
 
                     <div class="plans-grid">
                         <!-- Plan 1: Free -->
                         <div class="plan-card plan-free" id="plan-free">
                             <div class="plan-top">
-                                <h3>Бесплатно</h3>
+                                <h3 data-i18n="subs.free">Бесплатно</h3>
                                 <div class="plan-price">
-                                    $0<span>/мес</span>
+                                    $0<span data-i18n="subs.month">/мес</span>
                                 </div>
                             </div>
                             <ul class="plan-list">
-                                <li>✓ До 5,000 входных символов</li>
-                                <li>✓ 15 запросов в месяц</li>
-                                <li>✗ Настройки AI недоступны</li>
-                                <li>✗ История сокращения</li>
-                                <li>✗ Свой API ключ </li>
-                                <li>✗ Приемиум режимы AI</li>
+                                <li>✓ <span data-i18n="subs.up_to">До</span> 5,000 <span
+                                        data-i18n="subs.input_chars">входных символов</span></li>
+                                <li>✓ 15 <span data-i18n="subs.requests_month">запросов в месяц</span></li>
+                                <li>✗ <span data-i18n="subs.ai_unavailable">Настройки AI недоступны</span></li>
+                                <li>✗ <span data-i18n="subs.history">История сокращения</span></li>
+                                <li>✗ <span data-i18n="subs.own_api">Свой API ключ</span></li>
+                                <li>✗ <span data-i18n="subs.premium_modes">Приемиум режимы AI</span></li>
                             </ul>
-                            <button class="btn-plan current" data-plan="free">
+                            <button class="btn-plan current" data-plan="free" data-i18n="subs.current">
                                 Текущий план
                             </button>
                         </div>
 
                         <!-- Plan 2: GO (Basic) -->
                         <div class="plan-card plan-premium" id="plan-go">
-                            <div class="plan-popular">Популярный</div>
+                            <div class="plan-popular" data-i18n="subs.popular">Популярный</div>
                             <div class="plan-top">
                                 <h3>GO</h3>
                                 <div class="plan-price">
-                                    $1.50<span>/мес</span>
+                                    $1.50<span data-i18n="subs.month">/мес</span>
                                 </div>
                             </div>
                             <ul class="plan-list">
-                                <li>✓ До 10,000 входных символов</li>
-                                <li>✓ 25 запросов в месяц</li>
-                                <li>✓ Настройки AI</li>
-                                <li>✓ Приоритетная поддержка</li>
-                                <li>✓ Приемиум режимы AI</li>
-                                <li>✗ История сокращения</li>
-                                <li>✗ Свой API ключ </li>
+                                <li>✓ <span data-i18n="subs.up_to">До</span> 10,000 <span
+                                        data-i18n="subs.input_chars">входных символов</span></li>
+                                <li>✓ 25 <span data-i18n="subs.requests_month">запросов в месяц</span></li>
+                                <li>✓ <span data-i18n="subs.ai_settings">Настройки AI</span></li>
+                                <li>✓ <span data-i18n="subs.priority_support">Приоритетная поддержка</span></li>
+                                <li>✓ <span data-i18n="subs.premium_modes">Приемиум режимы AI</span></li>
+                                <li>✗ <span data-i18n="subs.history">История сокращения</span></li>
+                                <li>✗ <span data-i18n="subs.own_api">Свой API ключ</span></li>
                             </ul>
                             <button class="btn-plan upgrade" data-plan="go">
-                                Подключить GO
+                                <span data-i18n="subs.connect">Подключить</span> GO
                             </button>
                         </div>
 
@@ -267,20 +274,21 @@
                             <div class="plan-top">
                                 <h3>GO +</h3>
                                 <div class="plan-price">
-                                    $3<span>/мес</span>
+                                    $3<span data-i18n="subs.month">/мес</span>
                                 </div>
                             </div>
                             <ul class="plan-list">
-                                <li>✓ До 20,000 входных символов</li>
-                                <li>✓ 50 запросов в месяц</li>
-                                <li>✓ Настройки AI</li>
-                                <li>✓ Приоритетная поддержка</li>
-                                <li>✓ История сокращения</li>
-                                <li>✓ Приемиум режимы AI</li>
-                                <li>✗ Свой API ключ</li>
+                                <li>✓ <span data-i18n="subs.up_to">До</span> 20,000 <span
+                                        data-i18n="subs.input_chars">входных символов</span></li>
+                                <li>✓ 50 <span data-i18n="subs.requests_month">запросов в месяц</span></li>
+                                <li>✓ <span data-i18n="subs.ai_settings">Настройки AI</span></li>
+                                <li>✓ <span data-i18n="subs.priority_support">Приоритетная поддержка</span></li>
+                                <li>✓ <span data-i18n="subs.history">История сокращения</span></li>
+                                <li>✓ <span data-i18n="subs.premium_modes">Приемиум режимы AI</span></li>
+                                <li>✗ <span data-i18n="subs.own_api">Свой API ключ</span></li>
                             </ul>
                             <button class="btn-plan upgrade" data-plan="go_plus">
-                                Подключить GO +
+                                <span data-i18n="subs.connect">Подключить</span> GO +
                             </button>
                         </div>
 
@@ -289,20 +297,21 @@
                             <div class="plan-top">
                                 <h3>GO Pro</h3>
                                 <div class="plan-price">
-                                    $5<span>/мес</span>
+                                    $5<span data-i18n="subs.month">/мес</span>
                                 </div>
                             </div>
                             <ul class="plan-list">
-                                <li>✓ До 40,000 входных символов</li>
-                                <li>✓ 100 запросов в месяц</li>
-                                <li>✓ Настройки AI</li>
-                                <li>✓ Приоритетная поддержка</li>
-                                <li>✓ История сокращения</li>
-                                <li>✓ Приемиум режимы AI</li>
-                                <li>✓ Свой API ключ</li>
+                                <li>✓ <span data-i18n="subs.up_to">До</span> 40,000 <span
+                                        data-i18n="subs.input_chars">входных символов</span></li>
+                                <li>✓ 100 <span data-i18n="subs.requests_month">запросов в месяц</span></li>
+                                <li>✓ <span data-i18n="subs.ai_settings">Настройки AI</span></li>
+                                <li>✓ <span data-i18n="subs.priority_support">Приоритетная поддержка</span></li>
+                                <li>✓ <span data-i18n="subs.history">История сокращения</span></li>
+                                <li>✓ <span data-i18n="subs.premium_modes">Приемиум режимы AI</span></li>
+                                <li>✓ <span data-i18n="subs.own_api">Свой API ключ</span></li>
                             </ul>
                             <button class="btn-plan upgrade" data-plan="go_pro">
-                                Подключить GO Pro
+                                <span data-i18n="subs.connect">Подключить</span> GO Pro
                             </button>
                         </div>
 
@@ -311,43 +320,46 @@
                             <div class="plan-top">
                                 <h3>GO Pro +</h3>
                                 <div class="plan-price">
-                                    $50<span>/год</span>
+                                    $50<span data-i18n="subs.year">/год</span>
                                 </div>
                             </div>
                             <ul class="plan-list">
-                                <li>✓ До 50,000 входных символов</li>
-                                <li>✓ 300 запросов в месяц</li>
-                                <li>✓ Настройки AI</li>
-                                <li>✓ Приоритетная поддержка</li>
-                                <li>✓ История сокращения</li>
-                                <li>✓ Приемиум режимы AI</li>
-                                <li>✓ Свой API ключ</li>
+                                <li>✓ <span data-i18n="subs.up_to">До</span> 50,000 <span
+                                        data-i18n="subs.input_chars">входных символов</span></li>
+                                <li>✓ 300 <span data-i18n="subs.requests_month">запросов в месяц</span></li>
+                                <li>✓ <span data-i18n="subs.ai_settings">Настройки AI</span></li>
+                                <li>✓ <span data-i18n="subs.priority_support">Приоритетная поддержка</span></li>
+                                <li>✓ <span data-i18n="subs.history">История сокращения</span></li>
+                                <li>✓ <span data-i18n="subs.premium_modes">Приемиум режимы AI</span></li>
+                                <li>✓ <span data-i18n="subs.own_api">Свой API ключ</span></li>
                             </ul>
                             <button class="btn-plan upgrade" data-plan="go_pro_plus">
-                                Подключить GO Pro +
+                                <span data-i18n="subs.connect">Подключить</span> GO Pro +
                             </button>
                         </div>
 
                         <!-- Plan 6: Go Pro Ultra Max -->
                         <div class="plan-card plan-ultra" id="plan-go_pro_ultra">
-                            <div class="plan-popular" style="background: #8b5cf6;">Легендарный</div>
+                            <div class="plan-popular" style="background: #8b5cf6;" data-i18n="subs.legendary">
+                                Легендарный</div>
                             <div class="plan-top">
                                 <h3>GO Pro Ultra Max</h3>
                                 <div class="plan-price" style="color: #7c3aed;">
-                                    $80<span>/навсегда</span>
+                                    $80<span data-i18n="subs.forever">/навсегда</span>
                                 </div>
                             </div>
                             <ul class="plan-list">
-                                <li>✓ До 100,000 входных символов</li>
-                                <li>✓ 500 запросов в месяц</li>
-                                <li>✓ Настройки AI</li>
-                                <li>✓ Приоритетная поддержка</li>
-                                <li>✓ История сокращения</li>
-                                <li>✓ Приемиум режимы AI</li>
-                                <li>✓ Свой API ключ</li>
+                                <li>✓ <span data-i18n="subs.up_to">До</span> 100,000 <span
+                                        data-i18n="subs.input_chars">входных символов</span></li>
+                                <li>✓ 500 <span data-i18n="subs.requests_month">запросов в месяц</span></li>
+                                <li>✓ <span data-i18n="subs.ai_settings">Настройки AI</span></li>
+                                <li>✓ <span data-i18n="subs.priority_support">Приоритетная поддержка</span></li>
+                                <li>✓ <span data-i18n="subs.history">История сокращения</span></li>
+                                <li>✓ <span data-i18n="subs.premium_modes">Приемиум режимы AI</span></li>
+                                <li>✓ <span data-i18n="subs.own_api">Свой API ключ</span></li>
                             </ul>
                             <button class="btn-plan upgrade" data-plan="go_pro_ultra"
-                                style="background: #7c3aed; color: white;">
+                                style="background: #7c3aed; color: white;" data-i18n="subs.connect_forever">
                                 Подключить навсегда
                             </button>
                         </div>
@@ -359,15 +371,17 @@
                 <div id="history-premium-lock" class="premium-lock-overlay hidden">
                     <div class="lock-content">
                         <span class="lock-icon">🔒</span>
-                        <h2>История доступна в плане GO +</h2>
-                        <p>Подключите GO +, чтобы сохранять все свои сокращения и иметь к ним доступ в любое время.</p>
-                        <button id="upgrade-plan-history-btn" class="btn-primary">Улучшить план</button>
+                        <h2 data-i18n="history.lock_title">История доступна в плане GO +</h2>
+                        <p data-i18n="history.lock_desc">Подключите GO +, чтобы сохранять все свои сокращения и иметь к
+                            ним доступ в любое время.</p>
+                        <button id="upgrade-plan-history-btn" class="btn-primary" data-i18n="history.upgrade">Улучшить
+                            план</button>
                     </div>
                 </div>
 
                 <div class="tab-header">
-                    <h1>История сокращений</h1>
-                    <p>Список всех ваших предыдущих запросов и результатов</p>
+                    <h1 data-i18n="history.title">История сокращений</h1>
+                    <p data-i18n="history.subtitle">Список всех ваших предыдущих запросов и результатов</p>
                 </div>
 
                 <div class="section">
@@ -376,22 +390,48 @@
                             <table class="history-table">
                                 <thead>
                                     <tr>
-                                        <th>Дата</th>
-                                        <th>Режим</th>
-                                        <th>Источник</th>
-                                        <th>Текст</th>
+                                        <th data-i18n="history.date">Дата</th>
+                                        <th data-i18n="history.mode">Режим</th>
+                                        <th data-i18n="history.source">Источник</th>
+                                        <th data-i18n="history.text">Текст</th>
                                     </tr>
                                 </thead>
                                 <tbody id="history-list">
                                     <!-- History items will be injected here -->
                                     <tr>
-                                        <td colspan="4" class="text-center">Загрузка истории...</td>
+                                        <td colspan="4" class="text-center" data-i18n="history.loading">Загрузка
+                                            истории...</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                         <div id="history-empty" class="empty-state hidden">
-                            <p>У вас пока нет истории сокращений.</p>
+                            <p data-i18n="history.empty">У вас пока нет истории сокращений.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: ЯЗЫК -->
+            <div class="content-tab" id="tab-language">
+                <div class="tab-header">
+                    <h1 data-i18n="lang.title">Язык</h1>
+                    <p data-i18n="lang.subtitle">Выберите язык интерфейса</p>
+                </div>
+
+                <div class="section">
+                    <div class="info-row language-row">
+                        <div class="language-options">
+                            <button class="lang-option" data-value="ru">
+                                <span class="lang-flag">🇷🇺</span>
+                                <span class="lang-name" data-i18n="lang.ru">Русский</span>
+                                <span class="lang-check">✓</span>
+                            </button>
+                            <button class="lang-option" data-value="en">
+                                <span class="lang-flag">🇬🇧</span>
+                                <span class="lang-name" data-i18n="lang.en">English</span>
+                                <span class="lang-check">✓</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -403,40 +443,42 @@
     <div id="history-modal" class="modal-overlay hidden">
         <div class="modal-content history-detail">
             <div class="modal-header">
-                <h2>Детали упрощения</h2>
+                <h2 data-i18n="history.details">Детали упрощения</h2>
                 <button class="btn-close" id="close-history-modal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="detail-row">
-                    <span class="detail-label">Дата:</span>
+                    <span class="detail-label" data-i18n="history.date">Дата:</span>
                     <span id="detail-date" class="detail-value"></span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Режим:</span>
+                    <span class="detail-label" data-i18n="history.mode">Режим:</span>
                     <span id="detail-mode" class="detail-value"></span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Источник:</span>
+                    <span class="detail-label" data-i18n="history.source">Источник:</span>
                     <a id="detail-source" href="#" target="_blank" class="detail-value link"></a>
                 </div>
 
                 <div class="text-comparison">
                     <div class="text-block">
-                        <h3>Оригинал</h3>
+                        <h3 data-i18n="history.original">Оригинал</h3>
                         <div id="detail-original" class="text-content"></div>
                     </div>
                     <div class="text-block">
-                        <h3>Результат</h3>
+                        <h3 data-i18n="history.result">Результат</h3>
                         <div id="detail-simplified" class="text-content"></div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="copy-history-result" class="btn-primary">Скопировать результат</button>
+                <button id="copy-history-result" class="btn-primary" data-i18n="history.copy">Скопировать
+                    результат</button>
             </div>
         </div>
     </div>
 
+    <script src="../locales.js"></script>
     <script src="settings.js"></script>
 </body>
 

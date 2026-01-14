@@ -1,12 +1,63 @@
 // Background Service Worker
 
-// Initialize Context Menu
-chrome.runtime.onInstalled.addListener(() => {
-    chrome.contextMenus.create({
-        id: "simplify-text",
-        title: "Упростить: \"%s\"",
-        contexts: ["selection"]
+// Load translations
+let translations = null;
+
+async function loadTranslations() {
+    if (translations) return translations;
+    try {
+        const url = chrome.runtime.getURL('translations.json');
+        const response = await fetch(url);
+        translations = await response.json();
+    } catch (e) {
+        console.error("Failed to load translations:", e);
+    }
+    return translations;
+}
+
+function getTranslation(key, lang) {
+    if (!translations) return "Упростить: \"%s\""; // Default fallback
+    const langData = translations[lang] || translations['ru'];
+    return langData[key] || translations['ru'][key] || key;
+}
+
+async function updateContextMenu() {
+    await loadTranslations();
+    chrome.storage.local.get('language', (data) => {
+        const lang = data.language || 'ru';
+        const title = getTranslation('context.simplify', lang);
+
+        // Update existing item
+        chrome.contextMenus.update('simplify-text', {
+            title: title
+        }, () => {
+            if (chrome.runtime.lastError) {
+                // If item doesn't exist (should not happen if installed), ignore
+                console.log("Menu item update error (might not exist yet):", chrome.runtime.lastError);
+            }
+        });
     });
+}
+
+// Initialize Context Menu
+chrome.runtime.onInstalled.addListener(async () => {
+    await loadTranslations();
+    chrome.storage.local.get('language', (data) => {
+        const lang = data.language || 'ru';
+
+        chrome.contextMenus.create({
+            id: "simplify-text",
+            title: getTranslation('context.simplify', lang),
+            contexts: ["selection"]
+        });
+    });
+});
+
+// Listen for language changes
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.language) {
+        updateContextMenu();
+    }
 });
 
 // Handle Context Menu Click
@@ -119,12 +170,22 @@ async function sendMessageToTab(tabId, message) {
     }
 }
 
+async function isLanguageSet() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get('language', (data) => {
+            resolve(data.language || 'ru');
+        });
+    });
+}
+
 async function handleStreamingSimplification({ text, mode, url }, tabId, retryCount = 0) {
     try {
         // 1. Get Token
         const token = await getAuthToken(retryCount > 0).catch(err => {
             throw new Error("AUTH_REQUIRED");
         });
+
+        const language = await isLanguageSet(); // Helper to get lang
 
         const response = await fetch('http://127.0.0.1:8000/simplify', {
             method: 'POST',
@@ -136,7 +197,8 @@ async function handleStreamingSimplification({ text, mode, url }, tabId, retryCo
             body: JSON.stringify({
                 text: text,
                 mode: mode,
-                url: url
+                url: url,
+                language: language
             })
         });
 

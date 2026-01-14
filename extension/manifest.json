@@ -54,6 +54,8 @@
         {
             "resources": [
                 "icons/*.png",
+                "locales.js",
+                "translations.json",
                 "content/style.css",
                 "content/modal.html",
                 "content/components/login.html",

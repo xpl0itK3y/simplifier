@@ -1,3 +1,5 @@
 plan.md
 backend/.env
 backend/venv/
+backend/__pycache__/
+backend/users.db

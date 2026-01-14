@@ -1,5 +1,76 @@
 // Text Simplifier Content Script
 
+// I18n system for content script
+let i18nData = null;
+
+async function loadI18n() {
+  if (i18nData) return i18nData;
+
+  try {
+    const url = chrome.runtime.getURL('translations.json');
+    const response = await fetch(url);
+    const translations = await response.json();
+    i18nData = { TRANSLATIONS: translations };
+  } catch (e) {
+    console.error('Failed to load translations.json', e);
+  }
+  return i18nData;
+}
+
+async function getCurrentLang() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get('language', (result) => {
+      resolve(result.language || 'ru');
+    });
+  });
+}
+
+async function t(key) {
+  if (!i18nData) return key;
+  const lang = await getCurrentLang();
+  const translations = i18nData.TRANSLATIONS[lang] || i18nData.TRANSLATIONS['ru'];
+  return translations[key] || i18nData.TRANSLATIONS['ru'][key] || key;
+}
+
+async function applyI18nToElement(container) {
+  if (!i18nData) {
+    await loadI18n();
+  }
+  if (!i18nData) return;
+
+  const lang = await getCurrentLang();
+  const translations = i18nData.TRANSLATIONS[lang] || i18nData.TRANSLATIONS['ru'];
+
+  // Handle data-i18n for text content
+  const elements = container.querySelectorAll('[data-i18n]');
+  for (const el of elements) {
+    const key = el.getAttribute('data-i18n');
+    const translation = translations[key] || i18nData.TRANSLATIONS['ru'][key] || key;
+
+    const attr = el.getAttribute('data-i18n-attr');
+    if (attr) {
+      el.setAttribute(attr, translation);
+    } else if (el.tagName === 'INPUT' && el.type === 'text') {
+      el.placeholder = translation;
+    } else {
+      el.innerHTML = translation;
+    }
+  }
+
+  // Handle data-i18n-title for title attributes (tooltips)
+  const elementsWithTitle = container.querySelectorAll('[data-i18n-title]');
+  for (const el of elementsWithTitle) {
+    const key = el.getAttribute('data-i18n-title');
+    const translation = translations[key] || i18nData.TRANSLATIONS['ru'][key] || key;
+    el.setAttribute('title', translation);
+  }
+}
+
+// Initialize i18n when script loads
+(async function initI18n() {
+  await loadI18n();
+})();
+
 let shadowHost = null;
 let shadowRoot = null;
 let currentSelectionText = '';
@@ -310,7 +381,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const titleEl = shadowRoot.querySelector('.limits-title');
           const textEl = shadowRoot.querySelector('.limits-text');
           if (titleEl && error) titleEl.textContent = error;
-          if (textEl) textEl.innerHTML = "Пожалуйста, обновите подписку в настройках, чтобы продолжить использование этого режима или увеличить лимит символов.";
+          if (textEl) textEl.innerHTML = window.i18n.t('modal.limit_desc');
 
           const upgradeBtn = shadowRoot.querySelector('#upgrade-limits-btn');
           if (upgradeBtn) {
@@ -322,16 +393,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } else {
         // Generic Error with "Upgrade" context if it looks like a limit
         const lowerErr = error.toLowerCase();
-        const isLimitError = lowerErr.includes('лимит') ||
-          lowerErr.includes('план') ||
-          lowerErr.includes('макс') ||
-          lowerErr.includes('длинный');
+        const limitKeywords = ['лимит', 'план', 'макс', 'длинный', 'limit', 'plan', 'max', 'long', 'subscription'];
+        const isLimitError = limitKeywords.some(kw => lowerErr.includes(kw));
 
         resultContent.innerHTML = `
           <div class="error-container" style="text-align: center; padding: 20px;">
             <span class="error-msg" style="display: block; margin-bottom: 15px;">${error}</span>
             ${isLimitError ? `
-              <button class="action-btn active" id="error-upgrade-btn" style="margin: 0 auto;">Улучшить план</button>
+              <button class="action-btn active" id="error-upgrade-btn" style="margin: 0 auto;">${window.i18n.t('content.upgrade_plan')}</button>
             ` : ''}
           </div>
         `;
@@ -373,6 +442,10 @@ async function showModal() {
     // Fetch HTML template for Modal using cache
     const htmlText = await fetchTemplate('content/modal.html');
     modal.innerHTML = htmlText;
+
+    // Apply i18n translations to modal
+    await loadI18n();
+    await applyI18nToElement(modal);
 
     // Inject dynamic content (Selection Preview)
     const previewEl = modal.querySelector('#selection-preview');
@@ -489,8 +562,8 @@ function updateModalUI(modal, isAuthenticated, planId) {
         b.style.pointerEvents = 'auto';
         b.style.cursor = 'pointer';
 
-        if (mode === 'key_points') b.title = "Главные мысли в виде списка";
-        if (mode === 'examples') b.title = "Объяснение с примером из жизни";
+        b.style.pointerEvents = 'auto';
+        b.style.cursor = 'pointer';
       }
     });
 
@@ -613,6 +686,7 @@ async function fetchTemplate(path, container) {
 
     if (container) {
       container.innerHTML = html;
+      await applyI18nToElement(container);
     }
     return html;
   } catch (e) {

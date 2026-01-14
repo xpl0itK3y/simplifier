@@ -12,16 +12,16 @@
         <h1>simplifier</h1>
         <div class="status-badge">
             <span id="server-dot" class="dot"></span>
-            <span id="server-status">Проверка...</span>
+            <span id="server-status" data-i18n="popup.checking">Проверка...</span>
         </div>
     </div>
 
     <!-- State: Logged Out -->
     <div id="logged-out-view" class="auth-view">
         <div class="welcome-section">
-            <p class="welcome-text">Войдите, чтобы начать упрощать текст</p>
+            <p class="welcome-text" data-i18n="popup.login_prompt">Войдите, чтобы начать упрощать текст</p>
         </div>
-        <button id="login-btn" class="btn btn-login">
+        <button id="login-btn" class="btn btn-login" data-i18n="popup.login">
             Войти через Google
         </button>
     </div>
@@ -31,7 +31,7 @@
         <div class="profile-section">
             <img id="user-avatar" class="avatar" src="" alt="Avatar" />
             <div class="profile-info">
-                <div id="user-name" class="user-name">Загрузка...</div>
+                <div id="user-name" class="user-name" data-i18n="account.loading">Загрузка...</div>
                 <div id="user-email" class="user-email">...</div>
             </div>
         </div>
@@ -39,22 +39,23 @@
         <div class="subscription-section">
             <p class="subscription-text">
                 <span id="plan-name">Бесплатный</span> ·
-                <span id="requests-remaining">15</span> запросов
+                <span id="requests-remaining">15</span> <span data-i18n="popup.requests">запросов</span>
             </p>
         </div>
 
         <div class="hint-section">
-            <p class="hint-text">Выделите текст на странице</p>
+            <p class="hint-text" data-i18n="popup.hint">Выделите текст на странице</p>
         </div>
 
         <div class="actions">
-            <button id="settings-btn" class="btn btn-settings">
+            <button id="settings-btn" class="btn btn-settings" data-i18n="popup.settings">
                 Настройки
             </button>
-            <button id="logout-btn" class="btn btn-logout">Выйти</button>
+            <button id="logout-btn" class="btn btn-logout" data-i18n="popup.logout">Выйти</button>
         </div>
     </div>
 
+    <script src="../locales.js"></script>
     <script src="popup.js"></script>
 </body>
 

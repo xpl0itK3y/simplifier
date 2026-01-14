@@ -1,7 +1,25 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   console.log("Settings page loaded");
 
   window.currentHistory = []; // Global store for delegation
+
+  // Initialize language from storage
+  const lang = await window.i18n.getCurrentLang();
+  window.i18n.setCachedLang(lang);
+
+  // Set language dropdown
+  // Set initial active state for language buttons
+  const initialLangOptions = document.querySelectorAll('.lang-option');
+  initialLangOptions.forEach(opt => {
+    if (opt.dataset.value === lang) {
+      opt.classList.add('active');
+    } else {
+      opt.classList.remove('active');
+    }
+  });
+
+  // Apply translations
+  window.i18n.applyI18n(document);
 
   // Initialize navigation first
   initNavigation();
@@ -18,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Then check auth
   chrome.identity.getAuthToken({ interactive: false }, (token) => {
     if (chrome.runtime.lastError || !token) {
-      alert("Доступ запрещен. Пожалуйста, войдите в систему через расширение.");
+      alert(window.i18n.t('popup.login_prompt'));
       window.close();
       return;
     }
@@ -173,13 +191,46 @@ function initNavigation() {
       });
     }
   });
+
+  // Language selector handler
+  // Language selector handler (custom buttons)
+  const langOptions = document.querySelectorAll('.lang-option');
+  langOptions.forEach(opt => {
+    opt.onclick = async () => {
+      const newLang = opt.dataset.value;
+      const currentLang = await window.i18n.getCurrentLang();
+
+      if (newLang === currentLang) return;
+
+      // Update UI state
+      langOptions.forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+
+      await window.i18n.setLanguage(newLang);
+
+      // Re-apply translations
+      window.i18n.applyI18n(document);
+
+      // Update dynamic content
+      chrome.identity.getAuthToken({ interactive: false }, (token) => {
+        if (token) {
+          loadSubscriptionData(token);
+          loadHistory(token); // Reload history to update date format if needed
+        }
+      });
+    };
+  });
 }
 
 // Update User Profile UI
 function updateProfileUI(data) {
   if (!data) return;
   if (data.email) {
-    document.getElementById("user-email").textContent = data.email;
+    const emailEl = document.getElementById("user-email");
+    if (emailEl) {
+      emailEl.textContent = data.email;
+      emailEl.removeAttribute('data-i18n'); // Prevent override on language change
+    }
   }
 }
 
@@ -224,9 +275,14 @@ function updateSubscriptionUI(sub) {
   const progressFill = document.getElementById("progress-fill");
 
   if (statusBadge) {
-    statusBadge.textContent = sub.plan_name;
+    // Determine localized plan name based on ID
+    const planKey = 'subs.' + (sub.plan_id === 'go_pro_plus' ? 'go_pro' : sub.plan_id); // Handle potential variations
+    const planName = window.i18n.t(planKey) !== planKey ? window.i18n.t(planKey) : sub.plan_name;
+
+    statusBadge.textContent = planName;
     statusBadge.className =
       sub.plan_id === "free" ? "badge badge-free" : "badge badge-premium";
+    statusBadge.removeAttribute('data-i18n');
   }
 
   if (requestsUsed) requestsUsed.textContent = sub.requests_used;
@@ -294,13 +350,14 @@ async function loadSubscriptionData(token) {
 
 function updatePlanCardsUI(currentPlanId) {
   const allPlanCards = document.querySelectorAll(".plan-card");
+  const t = window.i18n.t;
 
   allPlanCards.forEach(card => {
     const btn = card.querySelector(".btn-plan");
     const planId = card.getAttribute("data-plan") || card.id.replace("plan-", "");
 
     if (planId === currentPlanId) {
-      btn.textContent = "Текущий план";
+      btn.textContent = t('subs.current');
       btn.classList.add("current");
       btn.classList.remove("upgrade");
       btn.disabled = true;
@@ -309,16 +366,16 @@ function updatePlanCardsUI(currentPlanId) {
       btn.classList.add("upgrade");
       btn.disabled = false;
 
-      // Keep original text if it was set, or default to generic upgrade
+      // Restore original button text based on plan
       if (planId === 'free') {
-        btn.textContent = "Базовый план";
+        btn.textContent = t('subs.free');
+      } else if (planId === 'go_pro_ultra') {
+        btn.textContent = t('subs.connect_forever');
       } else {
-        // Find if button already has specific text from HTML
-        const originalText = btn.getAttribute("data-original-text") || btn.textContent.trim();
-        if (!btn.getAttribute("data-original-text")) {
-          btn.setAttribute("data-original-text", originalText);
-        }
-        btn.textContent = originalText;
+        // For other plans: "Connect GO", "Connect GO+", etc.
+        const planKey = 'subs.' + (planId === 'go_pro_plus' ? 'go_pro' : planId);
+        const planName = window.i18n.t(planKey);
+        btn.textContent = t('subs.connect') + ' ' + (planName !== planKey ? planName : (planId.toUpperCase().replace('_', ' ')));
       }
     }
   });
@@ -377,7 +434,7 @@ function initSettings() {
   document.getElementById("apply-ai-settings").onclick = () => {
     chrome.identity.getAuthToken({ interactive: false }, async (token) => {
       if (!token) {
-        alert("Пожалуйста, авторизуйтесь");
+        alert(window.i18n.t('settings.auth_required'));
         return;
       }
 
@@ -389,7 +446,7 @@ function initSettings() {
       };
 
       const msg = document.getElementById("ai-status-msg");
-      msg.textContent = "Сохранение...";
+      msg.textContent = window.i18n.t('ai.saving');
 
       try {
         const res = await fetch("http://127.0.0.1:8000/settings", {
@@ -403,7 +460,7 @@ function initSettings() {
         });
 
         if (res.ok) {
-          msg.textContent = "Настройки сохранены!";
+          msg.textContent = window.i18n.t('ai.saved');
           msg.style.color = "#4caf50";
 
           // Update cache
@@ -411,14 +468,14 @@ function initSettings() {
             chrome.storage.local.set({ lastAISettings: settings });
           }
         } else if (res.status === 403) {
-          msg.textContent = "Требуется подписка GO";
+          msg.textContent = window.i18n.t('ai.premium_lock') + " GO";
           msg.style.color = "#f44336";
         } else {
-          msg.textContent = "Ошибка сохранения";
+          msg.textContent = window.i18n.t('ai.error');
           msg.style.color = "#f44336";
         }
       } catch (e) {
-        msg.textContent = "Ошибка сети";
+        msg.textContent = window.i18n.t('ai.error');
         msg.style.color = "#f44336";
       }
 
@@ -444,7 +501,7 @@ function initSettings() {
 
     chrome.identity.getAuthToken({ interactive: false }, async (token) => {
       if (!token) {
-        alert("Пожалуйста, авторизуйтесь");
+        alert(window.i18n.t('settings.auth_required'));
         return;
       }
 
@@ -460,10 +517,10 @@ function initSettings() {
         });
 
         if (res.ok) {
-          alert(`Поздравляем! Вы успешно перешли на новый план.`);
+          alert(window.i18n.t('settings.upgrade_success'));
           loadSubscriptionData(token); // Refresh UI
         } else {
-          alert("Ошибка при обновлении плана.");
+          alert(window.i18n.t('settings.upgrade_error'));
         }
       } catch (e) {
         console.error("Upgrade failed:", e);
@@ -523,12 +580,15 @@ function showHistoryDetail(item) {
   const modal = document.getElementById('history-modal');
   if (!modal) return;
 
-  const date = new Date(item.timestamp).toLocaleString('ru-RU');
+  const t = window.i18n.t;
+  const lang = window.i18n.getCachedLang();
+  const date = new Date(item.timestamp).toLocaleString(lang === 'en' ? 'en-US' : 'ru-RU');
+
   const modeMap = {
-    'simple': 'Просто',
-    'short': 'Кратко',
-    'key_points': 'Тезисно',
-    'examples': 'С примером'
+    'simple': t('ai.simple'),
+    'short': t('ai.short'),
+    'key_points': t('ai.key_points'),
+    'examples': t('ai.examples')
   };
 
   document.getElementById('detail-date').textContent = date;
@@ -540,7 +600,7 @@ function showHistoryDetail(item) {
     try {
       sourceLink.textContent = new URL(item.source_url).hostname;
     } catch (e) {
-      sourceLink.textContent = 'Открыть источник';
+      sourceLink.textContent = t('history.go_to_source');
     }
   } else {
     sourceLink.textContent = '—';
@@ -600,6 +660,8 @@ async function loadHistory(token) {
 function renderHistory(items) {
   const historyList = document.getElementById("history-list");
   const historyEmpty = document.getElementById("history-empty");
+  const t = window.i18n.t;
+  const lang = window.i18n.getCachedLang();
 
   if (!historyList) return;
 
@@ -616,16 +678,16 @@ function renderHistory(items) {
   historyList.innerHTML = ""; // Clear existing
 
   items.forEach((item, index) => {
-    const date = new Date(item.timestamp).toLocaleDateString('ru-RU', {
+    const date = new Date(item.timestamp).toLocaleDateString(lang === 'en' ? 'en-US' : 'ru-RU', {
       day: '2-digit', month: '2-digit', year: 'numeric'
     });
 
     // Clean mode name
     const modeMap = {
-      'simple': 'Просто',
-      'short': 'Кратко',
-      'key_points': 'Тезисно',
-      'examples': 'С примером'
+      'simple': t('ai.simple'),
+      'short': t('ai.short'),
+      'key_points': t('ai.key_points'),
+      'examples': t('ai.examples')
     };
     const modeName = modeMap[item.mode] || item.mode;
 
@@ -634,7 +696,7 @@ function renderHistory(items) {
       try {
         sourceLabel = new URL(item.source_url).hostname;
       } catch (e) {
-        sourceLabel = 'Источник';
+        sourceLabel = t('history.source');
       }
     }
 
@@ -649,8 +711,8 @@ function renderHistory(items) {
           </a>
         </td>
         <td class="text-preview">
-          <strong>Оригинал:</strong> ${item.original_text.substring(0, 50)}...<br>
-          <strong>Итог:</strong> ${item.simplified_text.substring(0, 50)}...
+          <strong>${t('history.original')}:</strong> ${item.original_text.substring(0, 50)}...<br>
+          <strong>${t('history.result')}:</strong> ${item.simplified_text.substring(0, 50)}...
         </td>
     `;
 
@@ -660,14 +722,14 @@ function renderHistory(items) {
 
 // Handle logout
 function handleLogout() {
-  if (confirm("Вы уверены, что хотите выйти?")) {
+  const t = window.i18n.t;
+  if (confirm(t('popup.logout') + '?')) {
     chrome.identity.getAuthToken({ interactive: false }, (token) => {
       if (token) {
         const revokeUrl =
           "https://accounts.google.com/o/oauth2/revoke?token=" + token;
         fetch(revokeUrl).finally(() => {
           chrome.identity.removeCachedAuthToken({ token: token }, () => {
-            alert("Вы вышли из аккаунта");
             window.close();
           });
         });
