@@ -93,5 +93,9 @@ uvicorn main:app --reload --port 8000
 A complete walkthrough of the application's capabilities, including authentication, settings configuration, and multi-mode text simplification.
 
 <div align="center">
-  <video src="assets/demo_compressed.mp4" controls width="100%" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></video>
+  <img src="assets/lv_0_20260115141610.gif" alt="Simplifier Demo" width="100%" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+  <br><br>
+  <a href="https://github.com/xpl0itK3y/simplifier/raw/main/assets/demo_compressed.mp4">
+    <b>📥 Download / View Full 3-min Video (MP4)</b>
+  </a>
 </div>
