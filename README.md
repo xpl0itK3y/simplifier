@@ -93,10 +93,5 @@ uvicorn main:app --reload --port 8000
 A complete walkthrough of the application's capabilities, including authentication, settings configuration, and multi-mode text simplification.
 
 <div align="center">
-  <p><em>GitHub does not support embedded video players for repository files.</em></p>
-  <a href="https://github.com/xpl0itK3y/simplifier/blob/main/assets/lv_0_20260115153024.mp4">
-    <img src="assets/lv_0_20260115141610.gif" alt="Watch Full Demo" width="100%" style="border-radius: 8px; filter: brightness(0.9);">
-    <br>
-    <button style="padding: 10px 20px; margin-top: 10px; cursor: pointer;"> Click here to watch the full 3-minute walkthrough</button>
-  </a>
+  <video src="assets/demo_compressed.mp4" controls width="100%" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></video>
 </div>
