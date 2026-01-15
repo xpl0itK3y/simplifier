@@ -46,7 +46,7 @@ The architecture prioritizes low latency, style isolation (Shadow DOM), and secu
 
 ## Key Features
 
-*   **⚡ Real-time Streaming**: Text is simplified and rendered token-by-token, providing immediate feedback to the user.
+*   **Real-time Streaming**: Text is simplified and rendered token-by-token, providing immediate feedback to the user.
 *   **Style Encapsulation**: The modal UI injects into a Shadow Root, ensuring it looks consistent on 100% of websites regardless of their CSS frameworks.
 *   **Multiple Modes**:
     *   **Simple**: Plain language explanation.
